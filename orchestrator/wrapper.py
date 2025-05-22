@@ -2,7 +2,9 @@ import requests
 import json
 from datetime import datetime
 
-BASE_URL = "http://192.168.0.105:5000"  # Replace with "http://localhost:5000" or your local IP
+# BASE_URL = "http://192.168.0.105:5000"  # Replace with "http://localhost:5000" or your local IP
+BASE_URL = "https://srabonbackend1.onrender.com"  # Replace with "http://localhost:5000" or your local IP
+
 
 def send_course(user_id, name, parent):
     return requests.post(f"{BASE_URL}/send", json={

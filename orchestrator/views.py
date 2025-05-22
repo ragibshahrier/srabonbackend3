@@ -16,7 +16,10 @@ from .fayeemai import *
 
 # Create your views here.
 
-BACKEND3_BASE_URL = "http://192.168.0.106:8000/"
+BACKEND3_BASE_URL = "http://192.168.0.105:8000/"
+# BACKEND3_BASE_URL = "https://srabonbackend1.onrender.com/"
+
+
 
 
 
