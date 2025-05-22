@@ -1,0 +1,65 @@
+# Bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Django/migrations (optional: keep empty __init__.py)
+**/migrations/
+!*/migrations/__init__.py
+
+# SQLite database
+*.sqlite3
+
+# IDEs/editors
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment variables
+.env
+*.env
+
+# Compiled files
+*.so
+*.out
+
+# Static/media
+staticfiles/
+media/
+
+# Pipenv/Poetry
+Pipfile.lock
+poetry.lock
+
+# Coverage/test reports
+htmlcov/
+.coverage
+.tox/
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# Node/npm (if using frontend build)
+node_modules/
+npm-debug.log
+yarn.lock
