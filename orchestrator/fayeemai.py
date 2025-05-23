@@ -211,16 +211,16 @@ def chat_bot(prev_response, cur_response):
     
 
     for data in prev_response:
-        print(data)
-        print(prev_response)
-        print(type(prev_response))
+        # print(data)
+        # print(prev_response)
+        # print(type(prev_response))
         if(data["Receiver"]=="ai"):
             text += f"User: {data['Message']}\n"
         else:
             text += f"AI: {data['Message']}\n\n"
 
     text += f"User's Last Message: {cur_response}\n"
-
+    print(text)
     prompt = (
         "This is a chat history between two users.\n\n"
         f"{text}\n\n"
