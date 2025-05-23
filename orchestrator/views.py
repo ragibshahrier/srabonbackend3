@@ -102,7 +102,7 @@ class LoginView(APIView):
         print(f"Payload: {{'username': {username}, 'password': ******}}")
 
         try:
-            response = requests.post(auth_url, json={"username": username, "password": password}, timeout=5)
+            response = requests.post(auth_url, json={"username": username, "password": password}, timeout=100)
             print(f"Auth Service Status: {response.status_code}")
             print(f"Auth Service Response: {response.text}")
         except requests.exceptions.RequestException as e:
