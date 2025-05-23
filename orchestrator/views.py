@@ -347,7 +347,7 @@ class CoursesView(APIView):
         response = get_course_spec(user_id=backend_id, course_id=course_id)
         if response.status_code == 200:
             course_data = response.json()
-            print(course_data)
+            # print(course_data)
             # Assuming the course data is in a field called 'course'
             return JsonResponse(course_data, safe=False)
         else:
@@ -368,7 +368,7 @@ class CoursesView(APIView):
                 course_data = response.json()
                 course_data = course_data['course']['parent']
                 course_data = json.loads(course_data)
-                print(course_data)
+                # print(course_data)
                 # Assuming the course data is in a field called 'course'
                 return JsonResponse(course_data, safe=False)
             else:

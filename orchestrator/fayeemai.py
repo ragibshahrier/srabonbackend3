@@ -220,7 +220,7 @@ def chat_bot(prev_response, cur_response):
             text += f"AI: {data['Message']}\n\n"
 
     text += f"User's Last Message: {cur_response}\n"
-    print(text)
+    # print(text)
     prompt = (
         "This is a chat history between two users.\n\n"
         f"{text}\n\n"
