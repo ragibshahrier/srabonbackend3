@@ -10,8 +10,14 @@ ENV/
 .venv/
 
 # Django/migrations (optional: keep empty __init__.py)
-**/migrations/
-!*/migrations/__init__.py
+# **/migrations/
+# !*/migrations/__init__.py
+
+- **/migrations/
+- !*/migrations/__init__.py
++ # Ignore pyc but not migration files
++ **/migrations/*.pyc
++ **/migrations/__pycache__/
 
 # SQLite database
 *.sqlite3
