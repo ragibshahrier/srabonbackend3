@@ -72,23 +72,56 @@ from .models import StudentProfile
 
 
 
+# class LoginView(APIView):
+#     def post(self, request):
+#         username = request.data.get('username')
+#         password = request.data.get('password')
+#         print(username)
+#         print(password)
+
+#         auth_url = f'{BACKEND3_BASE_URL}auth/jwt/create/'
+#         response = requests.post(auth_url, json={"username": username, "password": password})
+
+#         if response.status_code == 200:
+#             return Response({
+#                 "message": "Login successful",
+#                 "token": response.json().get("access")
+#             }, status=200)
+#         else:
+#             return Response({"error": "Invalid credentials"}, status=response.status_code)
+
+
 class LoginView(APIView):
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
-        print(username)
-        print(password)
 
         auth_url = f'{BACKEND3_BASE_URL}auth/jwt/create/'
-        response = requests.post(auth_url, json={"username": username, "password": password})
+
+        print(f"Sending login to: {auth_url}")
+        print(f"Payload: {{'username': {username}, 'password': ******}}")
+
+        try:
+            response = requests.post(auth_url, json={"username": username, "password": password})
+            print(f"Auth Service Status: {response.status_code}")
+            print(f"Auth Service Response: {response.text}")
+        except requests.exceptions.RequestException as e:
+            print(f"Request to auth service failed: {e}")
+            return Response({"error": "Internal auth request failed"}, status=500)
+
+        try:
+            data = response.json()
+        except ValueError:
+            return Response({"error": "Auth service did not return JSON", "raw": response.text}, status=500)
 
         if response.status_code == 200:
             return Response({
                 "message": "Login successful",
-                "token": response.json().get("access")
+                "token": data.get("access")
             }, status=200)
         else:
-            return Response({"error": "Invalid credentials"}, status=response.status_code)
+            return Response({"error": data.get("detail", "Login failed")}, status=response.status_code)
+
 
 
 class RegisterView(APIView):
