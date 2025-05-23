@@ -70,8 +70,9 @@ from .models import StudentProfile
 from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from django.db import IntegrityError
+from django.db import IntegrityError, DataError
 
+from django.core.exceptions import ValidationError
 
 
 
@@ -142,33 +143,6 @@ class LoginView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-# class RegisterView(APIView):
-#     def post(self, request):
-#         # Extract user details from the request
-#         username = request.data.get('username')
-#         password = request.data.get('password')
-#         email = request.data.get('email')
-
-#         # Make a request to the registration service
-#         register_url = f'{BACKEND3_BASE_URL}auth/users/'
-#         response = requests.post(register_url, json={"username": username, "password": password, "email": email})
-
-#         if response.status_code == 201:
-#             auth_url = f'{BACKEND3_BASE_URL}auth/jwt/create/'
-#             response = requests.post(auth_url, json={"username": username, "password": password})
-
-#             if response.status_code == 200:
-#                 return Response({
-#                     "message": "Registration successful. You are now logged in.",
-#                     "token": response.json().get("access")
-#                 }, status=200)
-
-#             # return Response({"message": "Registration successful"}, status=201)
-#         else:
-#             return Response({"error": "Registration failed"}, status=response.status_code)
-
-
-
 class RegisterView(APIView):
     def post(self, request):
         username = request.data.get('username')
@@ -176,12 +150,40 @@ class RegisterView(APIView):
         email = request.data.get('email')
 
         if not username or not password or not email:
-            return Response({"error": "All fields are required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "All fields are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
-            user = User.objects.create_user(username=username, password=password, email=email)
-        except IntegrityError:
-            return Response({"error": "Username already exists."}, status=status.HTTP_400_BAD_REQUEST)
+            user = User.objects.create_user(
+                username=username, password=password, email=email
+            )
+        except IntegrityError as e:
+            if "UNIQUE constraint" in str(e):
+                return Response(
+                    {"error": "Username or email already exists."},
+                    status=status.HTTP_409_CONFLICT
+                )
+            return Response(
+                {"error": "Database integrity error."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except ValidationError as e:
+            return Response(
+                {"error": "Validation error.", "details": e.messages},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY
+            )
+        except DataError as e:
+            return Response(
+                {"error": "Data too long or invalid format."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {"error": "Unexpected server error.", "details": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
         serializer = TokenObtainPairSerializer(data={"username": username, "password": password})
         if serializer.is_valid():
@@ -190,7 +192,33 @@ class RegisterView(APIView):
                 "token": serializer.validated_data.get("access")
             }, status=status.HTTP_201_CREATED)
         else:
-            return Response({"error": "Token generation failed."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"error": "Token generation failed."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+# class RegisterView(APIView):
+#     def post(self, request):
+#         username = request.data.get('username')
+#         password = request.data.get('password')
+#         email = request.data.get('email')
+
+#         if not username or not password or not email:
+#             return Response({"error": "All fields are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+#         try:
+#             user = User.objects.create_user(username=username, password=password, email=email)
+#         except IntegrityError:
+#             return Response({"error": "Username already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+#         serializer = TokenObtainPairSerializer(data={"username": username, "password": password})
+#         if serializer.is_valid():
+#             return Response({
+#                 "message": "Registration successful. You are now logged in.",
+#                 "token": serializer.validated_data.get("access")
+#             }, status=status.HTTP_201_CREATED)
+#         else:
+#             return Response({"error": "Token generation failed."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
