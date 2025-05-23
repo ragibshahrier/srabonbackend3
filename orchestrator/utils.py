@@ -1,4 +1,6 @@
 from .fayeemai import *
+import base64
+import json
 
 def extract_text_from_pdf(file_list):
     # Use PyMuPDF, pdfminer, or PyPDF2
@@ -34,3 +36,19 @@ def create_course(user_id, course_title, course_subject, course_description):
     #     "text": text
     # }).json()
     pass
+
+def encode_user_info(user_id: int, username: str, email: str) -> str:
+    data = {
+        "id": user_id,
+        "username": username,
+        "email": email
+    }
+    json_str = json.dumps(data)
+    encoded = base64.urlsafe_b64encode(json_str.encode()).decode()
+    return encoded
+
+def decode_user_info(encoded: str) -> dict:
+    decoded_bytes = base64.urlsafe_b64decode(encoded.encode())
+    json_str = decoded_bytes.decode()
+    data = json.loads(json_str)
+    return data

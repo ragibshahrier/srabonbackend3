@@ -13,7 +13,7 @@ from django.http import JsonResponse
 from django.views import View
 from .wrapper import *
 from .fayeemai import *
-
+from .utils import *
 # Create your views here.
 
 # BACKEND3_BASE_URL = "http://192.168.0.105:8000/"
@@ -205,8 +205,8 @@ class StudentDetail(APIView):
         
         print(f"Authenticated student's username: {username}")
         print(f"Authenticated student's ID: {userid}")
-        res = get_course_list("user123")
-        print(f"Course list: {res.json()}")
+        # res = get_course_list("user123")
+        # print(f"Course list: {res.json()}")
         return Response({"username": username}, status=200)
     
     def post(self, request):
@@ -254,6 +254,10 @@ class AddCourseView(APIView):
     def post(self, request):
         username = request.user.username  # The logged-in user's username
         user_id = request.user.id  # The logged-in user's ID (primary key)
+        user_email = request.user.id  # The logged-in user's ID (primary key)
+        backend_id = encode_user_info(user_id, username, user_email)
+
+
         thisstudent = StudentProfile.objects.filter(user=request.user).first()
 
 
@@ -267,7 +271,7 @@ class AddCourseView(APIView):
             
 
             airesponse = course_generator(cl = thisstudent.level, title = course_name, subject=course_subject)
-            response = send_course(user_id, str(thisstudent.coursenumber), airesponse)
+            response = send_course(backend_id, str(thisstudent.coursenumber), airesponse)
 
             thisstudent.coursenumber += 1
             thisstudent.save()
@@ -305,10 +309,14 @@ class CoursesView(APIView):
 
     def get(self, request, *args, **kwargs):
         course_id = kwargs.get('course_id')
-        user_id = request.user.id
+
+        username = request.user.username  # The logged-in user's username
+        user_id = request.user.id  # The logged-in user's ID (primary key)
+        user_email = request.user.id  # The logged-in user's ID (primary key)
+        backend_id = encode_user_info(user_id, username, user_email)
 
         # Find the course with the matching ID
-        response = get_course_spec(user_id=user_id, course_id=course_id)
+        response = get_course_spec(user_id=backend_id, course_id=course_id)
         if response.status_code == 200:
             course_data = response.json()
             print(course_data)
@@ -319,12 +327,15 @@ class CoursesView(APIView):
             return Response({"error": "Course not found"}, status=response.status_code)
         
     def get(self, request, *args, **kwargs):
+        username = request.user.username  # The logged-in user's username
         user_id = request.user.id  # The logged-in user's ID (primary key)
+        user_email = request.user.id  # The logged-in user's ID (primary key)
+        backend_id = encode_user_info(user_id, username, user_email)
 
 
         course_id = kwargs.get("course_id")
         if course_id:
-            response = get_course_spec(user_id=user_id, course_id=str(course_id))
+            response = get_course_spec(user_id=backend_id, course_id=str(course_id))
             if response.status_code == 200:
                 course_data = response.json()
                 course_data = course_data['course']['parent']
@@ -336,7 +347,7 @@ class CoursesView(APIView):
                 # Handle the case where the course is not found
                 return Response({"error": "Course not found"}, status=response.status_code)
 
-        response = get_course_list(user_id)
+        response = get_course_list(backend_id)
         objectt = response.json()  # Convert the response to a Python object (dictionary or list)
         objectt = objectt['courses']
 
@@ -530,24 +541,28 @@ class ChatConvo(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        username = request.user.username  # The logged-in user's username
         user_id = request.user.id  # The logged-in user's ID (primary key)
+        user_email = request.user.id  # The logged-in user's ID (primary key)
+        backend_id = encode_user_info(user_id, username, user_email)
+
         message = request.data.get('message')
 
         receiver = "ai"
         # timestamp = request.data.get('timestamp')
 
         # Call the send_chat function from wrapper.py
-        response = send_chat(user_id, receiver, message)
+        response = send_chat(backend_id, receiver, message)
 
-        contexts = get_chats(user_id, receiver, 5)
+        contexts = get_chats(backend_id, receiver, 5)
         contexts = contexts.json()
         contexts = contexts['messages']
 
         message_of_ai = chat_bot(contexts, message)
 
-        receiver = user_id
+        receiver = backend_id
 
-        response = send_chat(user_id, receiver, message_of_ai)
+        response = send_chat(backend_id, receiver, message_of_ai)
 
         airesponse = {
             "message": message_of_ai,
