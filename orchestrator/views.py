@@ -553,7 +553,7 @@ class ChatConvo(APIView):
             "message": message_of_ai,
             "sender": "ai",
             "receiver": user_id,
-            "timestamp": response.json().get('timestamp')
+            "timestamp": response.json().get('Timestamp')
         }
 
 
