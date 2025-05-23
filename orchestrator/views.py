@@ -547,6 +547,12 @@ class ChatConvo(APIView):
         backend_id = encode_user_info(user_id, username, user_email)
 
         message = request.data.get('message')
+        limit = request.data.get('limit', 'true')  # Default to "true" if not provided
+
+        if (limit == "false"):
+            # Call the delete_chat function from wrapper.py
+            response = delete_message(backend_id)
+            
 
         receiver = "ai"
         # timestamp = request.data.get('timestamp')
@@ -554,7 +560,7 @@ class ChatConvo(APIView):
         # Call the send_chat function from wrapper.py
         response = send_chat(backend_id, receiver, message)
 
-        contexts = get_chats(backend_id, receiver, 5)
+        contexts = get_chats(backend_id, receiver, 10)
         contexts = contexts.json()
         contexts = contexts['messages']
 
