@@ -67,7 +67,10 @@ from rest_framework.response import Response
 import requests
 from .models import StudentProfile
 
-
+from django.contrib.auth.models import User
+from rest_framework import status
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.db import IntegrityError
 
 
 
@@ -91,64 +94,107 @@ from .models import StudentProfile
 #             return Response({"error": "Invalid credentials"}, status=response.status_code)
 
 
+# class LoginView(APIView):
+#     def post(self, request):
+#         username = request.data.get('username')
+#         password = request.data.get('password')
+
+#         auth_url = f'{BACKEND3_BASE_URL}auth/jwt/create/'
+
+#         print(f"Sending login to: {auth_url}")
+#         print(f"Payload: {{'username': {username}, 'password': ******}}")
+
+#         try:
+#             response = requests.post(auth_url, json={"username": username, "password": password}, timeout=100)
+#             print(f"Auth Service Status: {response.status_code}")
+#             print(f"Auth Service Response: {response.text}")
+#         except requests.exceptions.RequestException as e:
+#             print(f"Request to auth service failed: {e}")
+#             return Response({"error": "Internal auth request failed"}, status=500)
+
+#         try:
+#             data = response.json()
+#         except ValueError:
+#             return Response({"error": "Auth service did not return JSON", "raw": response.text}, status=500)
+
+#         if response.status_code == 200:
+#             return Response({
+#                 "message": "Login successful",
+#                 "token": data.get("access")
+#             }, status=200)
+#         else:
+#             return Response({"error": data.get("detail", "Login failed")}, status=response.status_code)
+
 class LoginView(APIView):
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
 
-        auth_url = f'{BACKEND3_BASE_URL}auth/jwt/create/'
-
-        print(f"Sending login to: {auth_url}")
-        print(f"Payload: {{'username': {username}, 'password': ******}}")
-
-        try:
-            response = requests.post(auth_url, json={"username": username, "password": password}, timeout=100)
-            print(f"Auth Service Status: {response.status_code}")
-            print(f"Auth Service Response: {response.text}")
-        except requests.exceptions.RequestException as e:
-            print(f"Request to auth service failed: {e}")
-            return Response({"error": "Internal auth request failed"}, status=500)
-
-        try:
-            data = response.json()
-        except ValueError:
-            return Response({"error": "Auth service did not return JSON", "raw": response.text}, status=500)
-
-        if response.status_code == 200:
+        serializer = TokenObtainPairSerializer(data={"username": username, "password": password})
+        if serializer.is_valid():
             return Response({
                 "message": "Login successful",
-                "token": data.get("access")
-            }, status=200)
+                "token": serializer.validated_data.get("access")
+            }, status=status.HTTP_200_OK)
         else:
-            return Response({"error": data.get("detail", "Login failed")}, status=response.status_code)
+            return Response(
+                {"error": serializer.errors.get("non_field_errors", ["Login failed"])[0]},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+# class RegisterView(APIView):
+#     def post(self, request):
+#         # Extract user details from the request
+#         username = request.data.get('username')
+#         password = request.data.get('password')
+#         email = request.data.get('email')
+
+#         # Make a request to the registration service
+#         register_url = f'{BACKEND3_BASE_URL}auth/users/'
+#         response = requests.post(register_url, json={"username": username, "password": password, "email": email})
+
+#         if response.status_code == 201:
+#             auth_url = f'{BACKEND3_BASE_URL}auth/jwt/create/'
+#             response = requests.post(auth_url, json={"username": username, "password": password})
+
+#             if response.status_code == 200:
+#                 return Response({
+#                     "message": "Registration successful. You are now logged in.",
+#                     "token": response.json().get("access")
+#                 }, status=200)
+
+#             # return Response({"message": "Registration successful"}, status=201)
+#         else:
+#             return Response({"error": "Registration failed"}, status=response.status_code)
 
 
 
 class RegisterView(APIView):
     def post(self, request):
-        # Extract user details from the request
         username = request.data.get('username')
         password = request.data.get('password')
         email = request.data.get('email')
 
-        # Make a request to the registration service
-        register_url = f'{BACKEND3_BASE_URL}auth/users/'
-        response = requests.post(register_url, json={"username": username, "password": password, "email": email})
+        if not username or not password or not email:
+            return Response({"error": "All fields are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if response.status_code == 201:
-            auth_url = f'{BACKEND3_BASE_URL}auth/jwt/create/'
-            response = requests.post(auth_url, json={"username": username, "password": password})
+        try:
+            user = User.objects.create_user(username=username, password=password, email=email)
+        except IntegrityError:
+            return Response({"error": "Username already exists."}, status=status.HTTP_400_BAD_REQUEST)
 
-            if response.status_code == 200:
-                return Response({
-                    "message": "Registration successful. You are now logged in.",
-                    "token": response.json().get("access")
-                }, status=200)
-
-            # return Response({"message": "Registration successful"}, status=201)
+        serializer = TokenObtainPairSerializer(data={"username": username, "password": password})
+        if serializer.is_valid():
+            return Response({
+                "message": "Registration successful. You are now logged in.",
+                "token": serializer.validated_data.get("access")
+            }, status=status.HTTP_201_CREATED)
         else:
-            return Response({"error": "Registration failed"}, status=response.status_code)
-        
+            return Response({"error": "Token generation failed."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
 class StudentDetail(APIView):
     permission_classes = [IsAuthenticated]
 
