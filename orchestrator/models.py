@@ -14,6 +14,7 @@ class StudentProfile(models.Model):
     points = models.IntegerField(default=0)
     level = models.IntegerField(default=5)
     coursenumber = models.IntegerField(default=100)
+    favsubjects = models.CharField(max_length=500, default='')
 
 
     def __str__(self):

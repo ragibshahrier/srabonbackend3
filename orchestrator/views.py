@@ -229,13 +229,33 @@ class StudentDetail(APIView):
     def get(self, request):
         username = request.user.username  # The logged-in user's username
         userid = request.user.id
+        email = request.user.email  # The logged-in user's email
+        student_profile = StudentProfile.objects.filter(user=request.user).first()
+        if not student_profile:
+            return Response({"error": "Student profile not found"}, status=404)
+        
+        name = student_profile.name
+        level = student_profile.level
+        points = student_profile.points
+        subjects = student_profile.favsubjects
+        subjects = json.loads(subjects) if subjects else []
 
         
         print(f"Authenticated student's username: {username}")
         print(f"Authenticated student's ID: {userid}")
         # res = get_course_list("user123")
         # print(f"Course list: {res.json()}")
-        return Response({"username": username}, status=200)
+
+        resp = {
+            "username": username,
+            "userid": userid,
+            "email": email,
+            "name": name,
+            "class": level,
+            "points": points,
+            "subjects": subjects
+        }
+        return Response(resp, status=200)
     
     def post(self, request):
         user_id = request.user.id
@@ -257,12 +277,19 @@ class StudentDetail(APIView):
         # new_email = request.data.get('email')
         new_level = request.data.get('class')
         new_name = request.data.get('name')
+        new_subjects = request.data.get('subjects', [])
         # new_points = request.data.get('points')
 
         if new_name:
             student_profile.name = new_name
         if new_level:
             student_profile.level = int(new_level)
+        if new_subjects:
+            # Ensure new_subjects is a list and convert it to a JSON string
+            if isinstance(new_subjects, list):
+                student_profile.favsubjects = json.dumps(new_subjects)
+            else:
+                return Response({"error": "Subjects must be a list"}, status=400)
         # if new_points:
         #     student_profile.points = int(new_points)
 
