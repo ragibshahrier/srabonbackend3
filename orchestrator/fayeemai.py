@@ -78,6 +78,7 @@ def course_generator(subject, cl, title):
                 '2. Story-based explanation\n'
                 '3. Real-life example\n'
                 '4. article should be 1200 words talking about various aspects of the topic\n'
+                '5. The answer to the questions should be the full option text, not just letter or number. it should be full option text like if option1 is "ABCD" then ans should be "ABCD" not "1" or "a"\n'
 
                 'Do not use markdown language and Return JSON in the following format:\n'
                 'carefully write the JSON any mistake can lead to lethal disaster so be careful\n'
