@@ -126,6 +126,19 @@ from django.core.exceptions import ValidationError
 #         else:
 #             return Response({"error": data.get("detail", "Login failed")}, status=response.status_code)
 
+
+class Getserverinfo(APIView):
+    def get(self,request):
+        stat = checkready()
+        if(stat==1):
+            return Response({"ready":"True"},status = status.HTTP_200_OK)
+        elif(stat==0):
+            return Response({"ready":"False"}, status = status.HTTP_503_SERVICE_UNAVAILABLE)
+        else:
+            return Response({"ready":"error"}, status = status.HTTP_502_BAD_GATEWAY)
+
+        
+
 class LoginView(APIView):
     def post(self, request):
         username = request.data.get('username')

@@ -6,6 +6,18 @@ from datetime import datetime
 BASE_URL = "https://srabonbackend1.onrender.com"  # Replace with "http://localhost:5000" or your local IP
 
 
+def checkready():
+    try:
+        r = requests.get(BASE_URL, timeout = 10)
+        if r.status_code == 200 and r.text.strip() == 'Ahis':
+            return 1
+        else:
+            return 0
+    except requests.exceptions.RequestException as e:
+        return -1
+
+
+
 def send_course(user_id, name, parent):
     return requests.post(f"{BASE_URL}/send", json={
         "mode": "courseadd",
