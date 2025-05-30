@@ -1,14 +1,22 @@
 import requests
 import json
 from datetime import datetime
+import os
+
 
 # BASE_URL = "http://192.168.0.105:5000"  # Replace with "http://localhost:5000" or your local IP
-BASE_URL = "https://srabonbackend1.onrender.com"  # Replace with "http://localhost:5000" or your local IP
+# BASE_URL = "https://srabonbackend1.onrender.com"  # Replace with "http://localhost:5000" or your local IP
+BASE_URL = os.getenv("BACKEND1_BASE_URL", "https://srabonbackend1.onrender.com")
 
+if BASE_URL.endswith('/'):
+    BASE_URL = BASE_URL[:-1]  # Remove trailing slash if present
 
 def checkready():
     try:
-        r = requests.get(BASE_URL, timeout = 10)
+        headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36'
+        }
+        r = requests.get(BASE_URL, headers=headers, timeout=10)
         if r.status_code == 200 and r.text.strip() == 'Ahis':
             return 1
         else:

@@ -32,7 +32,8 @@ if os.path.isfile(dotenv_file):
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-%9@i3_j!1g12#t5n!gy(1j8^$fkl@9g=_n77ov2fla9t*#)d1-'
+# SECRET_KEY = 'django-insecure-%9@i3_j!1g12#t5n!gy(1j8^$fkl@9g=_n77ov2fla9t*#)d1-'
+SECRET_KEY = os.getenv("SECRET_KEY", '')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

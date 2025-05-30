@@ -17,9 +17,10 @@ from .utils import *
 # Create your views here.
 
 # BACKEND3_BASE_URL = "http://192.168.0.105:8000/"
-BACKEND3_BASE_URL = "https://srabonbackend3.onrender.com/"
-# BACKEND3_BASE_URL = os.environ['BACKEND3_BASE_URL']
-
+# BACKEND3_BASE_URL = "https://srabonbackend3.onrender.com/"
+BACKEND3_BASE_URL = os.getenv("BACKEND3_BASE_URL", "https://srabonbackend3.onrender.com/")
+if not BACKEND3_BASE_URL.endswith('/'):
+    BACKEND3_BASE_URL += '/'  # Ensure it ends with a slash
 
 
 
