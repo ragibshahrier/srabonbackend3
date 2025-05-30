@@ -93,7 +93,7 @@ def add_bangla_translations(airesponse: str) -> str:
     content['title-bn'] = translate_bangla(content['title'])
     content['subtitle-bn'] = translate_bangla(content['subtitle'])
     content['description-bn'] = translate_bangla(content['description'])
-    content['article-bn'] = smart_translate_bangla(content['article'])
+    # content['article-bn'] = smart_translate_bangla(content['article'])
 
     content['questions-bn'] = []
     
