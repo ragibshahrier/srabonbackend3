@@ -13,6 +13,14 @@ def translate_bangla(text: str) -> str:
     except Exception as e:
         print(f"Translation error: {e}")
         return text  # Return original text in case of error
+    
+def smart_translate_bangla(text: str) -> str:
+    parts = re.split(r'(?<=[.?!])\s+|\n+', text.strip())
+    translated_parts = []
+    for part in parts:
+        if part.strip():
+            translated_parts.append(GoogleTranslator(source='auto', target='bn').translate(part.strip()))
+    return "\n".join(translated_parts)
 
 def extract_text_from_pdf(file_list):
     # Use PyMuPDF, pdfminer, or PyPDF2
@@ -78,7 +86,7 @@ def add_bangla_translations(airesponse: str) -> str:
     content['title-bn'] = translate_bangla(content['title'])
     content['subtitle-bn'] = translate_bangla(content['subtitle'])
     content['description-bn'] = translate_bangla(content['description'])
-    content['article-bn'] = translate_bangla(content['article'])
+    content['article-bn'] = smart_translate_bangla(content['article'])
 
     content['questions-bn'] = []
     
