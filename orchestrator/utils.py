@@ -1,33 +1,43 @@
 from .fayeemai import *
 import base64
 import json
-from deep_translator import GoogleTranslator
+# from deep_translator import GoogleTranslator
 
-def translate_bangla(text: str) -> str:
-    """
-    Translates the given text to Bangla using Google Translator.
-    """
+def generate_texts(prompt):
     try:
-        translated = GoogleTranslator(source='english', target='bengali').translate(text)
-        return translated
+        client = genai.Client(api_key=GEMINI_API_KEY)
+        response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+        return response.text.strip()
     except Exception as e:
-        print(f"Translation error: {e}")
-        return text  # Return original text in case of error
+        print(f"Gemini Generation Error: {e}")
+        return ""
+
+def translate_bangla_single(text: str) -> str:
+    try:
+        prompt = f"Translate the following English text into Bengali:\n\n{text} just return the translated text without any additional information."
+        response = generate_texts(prompt)
+        return response
+    except Exception as e:
+        print(f"Gemini Translation Error: {e}")
+        return text
     
-def smart_translate_bangla(text: str) -> str:
-    parts = re.split(r'(?<=[.?!])\s+|\n+', text.strip())
-    translated_parts = []
+def translate_multiple_texts_to_bangla(texts: list[str]) -> list[str]:
+    prompt = "Translate the following English texts into Bengali. Return them as a numbered list:\n\n"
+    for i, text in enumerate(texts):
+        prompt += f"{i+1}. {text.strip()}\n"
+    prompt += "\nPlease return the translations in the same order as the original texts."
+    prompt += "just return the translated text without any additional information."
     
     try:
-        translator = GoogleTranslator(source='auto', target='bn')
-        for part in parts:
-            if part.strip():
-                translated_parts.append(translator.translate(part.strip()))
-        return "\n".join(translated_parts)
-    
+        result = generate_texts(prompt)
+        lines = result.strip().split("\n")
+        return [line.split(". ", 1)[1].strip() for line in lines if ". " in line]
     except Exception as e:
-        print(f"Translation error: {e}")
-        return text  # Fallback to original text
+        print(f"Gemini batch translation error: {e}")
+        return texts
+    
+    
+
 
 def extract_text_from_pdf(file_list):
     # Use PyMuPDF, pdfminer, or PyPDF2
@@ -90,10 +100,40 @@ def decode_user_info(encoded: str) -> dict:
 
 def add_bangla_translations(airesponse: str) -> str:
     content = json.loads(airesponse)
-    content['title-bn'] = translate_bangla(content['title'])
-    content['subtitle-bn'] = translate_bangla(content['subtitle'])
-    content['description-bn'] = translate_bangla(content['description'])
-    # content['article-bn'] = smart_translate_bangla(content['article'])
+    tobe_translated = []
+    tobe_translated.append(content['title'])
+    tobe_translated.append(content['subtitle'])
+    tobe_translated.append(content['description'])
+
+    for i in range(len(content['questions'])):
+        question = content['questions'][i]
+        
+        tobe_translated.append(question['question'])
+        tobe_translated.append(question['option1'])
+        tobe_translated.append(question['option2'])
+        tobe_translated.append(question['option3'])
+        tobe_translated.append(question['option4'])
+
+
+        
+
+
+    for i in range(len(content['flashcards'])):
+        tobe_translated.append(content['flashcards'][i][f'flashcard{i+1}'])
+        
+    translated_texts = translate_multiple_texts_to_bangla(tobe_translated)
+
+    ind = 0
+
+    content['title-bn'] = translated_texts[ind]
+    ind += 1
+    content['subtitle-bn'] = translated_texts[ind]
+    ind += 1
+    content['description-bn'] = translated_texts[ind]
+    ind += 1
+
+
+    content['article-bn'] = translate_bangla_single(content['article'])
 
     content['questions-bn'] = []
     
@@ -106,20 +146,22 @@ def add_bangla_translations(airesponse: str) -> str:
                 break
 
         content['questions-bn'].append({
-            "question": translate_bangla(question['question']),
-            "option1": translate_bangla(question['option1']),
-            "option2": translate_bangla(question['option2']),
-            "option3": translate_bangla(question['option3']),
-            "option4": translate_bangla(question['option4']),
+            "question": translated_texts[ind],
+            "option1": translated_texts[ind + 1],
+            "option2": translated_texts[ind + 2],
+            "option3": translated_texts[ind + 3],
+            "option4": translated_texts[ind + 4],
         })
+        ind += 5
         content['questions-bn'][i]['ans'] = content['questions-bn'][i][f'option{correct_option_number}']
 
     content['flashcards-bn'] = []
 
     for i in range(len(content['flashcards'])):
         content['flashcards-bn'].append({
-            f'flashcard{i+1}': translate_bangla(content['flashcards'][i][f'flashcard{i+1}']),
+            f'flashcard{i+1}': translated_texts[ind],
         })
+        ind += 1
 
     airesponse = json.dumps(content, ensure_ascii=False)
     return airesponse
