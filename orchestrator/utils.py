@@ -17,10 +17,17 @@ def translate_bangla(text: str) -> str:
 def smart_translate_bangla(text: str) -> str:
     parts = re.split(r'(?<=[.?!])\s+|\n+', text.strip())
     translated_parts = []
-    for part in parts:
-        if part.strip():
-            translated_parts.append(GoogleTranslator(source='auto', target='bn').translate(part.strip()))
-    return "\n".join(translated_parts)
+    
+    try:
+        translator = GoogleTranslator(source='auto', target='bn')
+        for part in parts:
+            if part.strip():
+                translated_parts.append(translator.translate(part.strip()))
+        return "\n".join(translated_parts)
+    
+    except Exception as e:
+        print(f"Translation error: {e}")
+        return text  # Fallback to original text
 
 def extract_text_from_pdf(file_list):
     # Use PyMuPDF, pdfminer, or PyPDF2
