@@ -99,71 +99,116 @@ def decode_user_info(encoded: str) -> dict:
 #add bangla translations to airesponse
 
 def add_bangla_translations(airesponse: str) -> str:
-    content = json.loads(airesponse)
-    tobe_translated = []
-    tobe_translated.append(content['title'])
-    tobe_translated.append(content['subtitle'])
-    tobe_translated.append(content['description'])
+    try:
 
-    for i in range(len(content['questions'])):
-        question = content['questions'][i]
-        
-        tobe_translated.append(question['question'])
-        tobe_translated.append(question['option1'])
-        tobe_translated.append(question['option2'])
-        tobe_translated.append(question['option3'])
-        tobe_translated.append(question['option4'])
-        tobe_translated.append(question['explanation'])
+        content = json.loads(airesponse)
+        tobe_translated = []
+        tobe_translated.append(content['title'])
+        tobe_translated.append(content['subtitle'])
+        tobe_translated.append(content['description'])
 
-
-        
-
-
-    for i in range(len(content['flashcards'])):
-        tobe_translated.append(content['flashcards'][i][f'flashcard{i+1}'])
-        
-    translated_texts = translate_multiple_texts_to_bangla(tobe_translated)
-
-    ind = 0
-
-    content['title-bn'] = translated_texts[ind]
-    ind += 1
-    content['subtitle-bn'] = translated_texts[ind]
-    ind += 1
-    content['description-bn'] = translated_texts[ind]
-    ind += 1
+        for i in range(len(content['questions'])):
+            question = content['questions'][i]
+            
+            tobe_translated.append(question['question'])
+            tobe_translated.append(question['option1'])
+            tobe_translated.append(question['option2'])
+            tobe_translated.append(question['option3'])
+            tobe_translated.append(question['option4'])
+            tobe_translated.append(question['explanation'])
 
 
-    content['article-bn'] = translate_bangla_single(content['article'])
+            
 
-    content['questions-bn'] = []
-    
-    for i in range(len(content['questions'])):
-        question = content['questions'][i]
-        correct_option_number = 0
-        for j in range(4):
-            if question['ans'] == question[f'option{j+1}']:
-                correct_option_number = j + 1
-                break
 
-        content['questions-bn'].append({
-            "question": translated_texts[ind],
-            "option1": translated_texts[ind + 1],
-            "option2": translated_texts[ind + 2],
-            "option3": translated_texts[ind + 3],
-            "option4": translated_texts[ind + 4],
-            "explanation": translated_texts[ind + 5],
-        })
-        ind += 6
-        content['questions-bn'][i]['ans'] = content['questions-bn'][i][f'option{correct_option_number}']
+        for i in range(len(content['flashcards'])):
+            tobe_translated.append(content['flashcards'][i][f'flashcard{i+1}'])
+            
+        translated_texts = translate_multiple_texts_to_bangla(tobe_translated)
 
-    content['flashcards-bn'] = []
+        ind = 0
 
-    for i in range(len(content['flashcards'])):
-        content['flashcards-bn'].append({
-            f'flashcard{i+1}': translated_texts[ind],
-        })
+        content['title-bn'] = translated_texts[ind]
+        ind += 1
+        content['subtitle-bn'] = translated_texts[ind]
+        ind += 1
+        content['description-bn'] = translated_texts[ind]
         ind += 1
 
-    airesponse = json.dumps(content, ensure_ascii=False)
+
+        content['article-bn'] = translate_bangla_single(content['article'])
+
+        content['questions-bn'] = []
+        
+        for i in range(len(content['questions'])):
+            question = content['questions'][i]
+            correct_option_number = 0
+            for j in range(4):
+                if question['ans'] == question[f'option{j+1}']:
+                    correct_option_number = j + 1
+                    break
+
+            content['questions-bn'].append({
+                "question": translated_texts[ind],
+                "option1": translated_texts[ind + 1],
+                "option2": translated_texts[ind + 2],
+                "option3": translated_texts[ind + 3],
+                "option4": translated_texts[ind + 4],
+                "explanation": translated_texts[ind + 5],
+            })
+            ind += 6
+            content['questions-bn'][i]['ans'] = content['questions-bn'][i][f'option{correct_option_number}']
+
+        content['flashcards-bn'] = []
+
+        for i in range(len(content['flashcards'])):
+            content['flashcards-bn'].append({
+                f'flashcard{i+1}': translated_texts[ind],
+            })
+            ind += 1
+
+        airesponse = json.dumps(content, ensure_ascii=False)
+    except Exception as e:
+        print(f"Error occurred while adding Bangla translations: {e}")
+        airesponse = airesponse
+
     return airesponse
+
+
+
+# This function reduces the text to a maximum number of characters while maintaining the essence of the content.
+def reduce_text_distributed(text, max_chars=150000):
+    # Step 1: Split text into sentences
+    sentences = re.split(r'(?<=[.?!])\s+', text.strip())
+
+    # Step 2: Calculate total characters
+    total_chars = sum(len(s) for s in sentences)
+
+    # If already short enough, return as-is
+    if total_chars <= max_chars:
+        return text
+
+    # Step 3: Proportional sentence trimming
+    reduced_sentences = []
+    for s in sentences:
+        ratio = len(s) / total_chars
+        allowed_chars = int(ratio * max_chars)
+        words = s.split()
+
+        # If the sentence is longer than allowed, trim it word-wise
+        if len(s) > allowed_chars and len(words) > 5:
+            # Remove some words to reduce the length proportionally
+            factor = allowed_chars / len(s)
+            keep_count = max(3, int(len(words) * factor))
+            step = len(words) / keep_count
+
+            reduced_words = [words[int(i * step)] for i in range(keep_count)]
+            reduced_s = ' '.join(reduced_words)
+        else:
+            reduced_s = s
+
+        reduced_sentences.append(reduced_s)
+
+    # Step 4: Recombine and truncate just in case
+    final_text = ' '.join(reduced_sentences)
+    return final_text[:max_chars]

@@ -66,19 +66,29 @@ def extract_json(text):
 
 # === GEMINI PROMPT — PDF-BASED ===
 
-def course_generator(subject, cl, title):
+def course_generator(subject, cl, title, pdftext):
+    insert_text = ""
+    if pdftext:
+        insert_text = (
+            f'use this content to generate the course: \n\n{pdftext}\n\n'
+            'use the informations that is relevant to the subject and title. Make the course based on it\n'
+        )
+
+    print(insert_text)
     while True:
         try:
             prompt = (
                 f'Generate 15 MCQs, an article, and 10 flashcards on the topic "{title}" under the subject "{subject}".\n'
                 'Description should contain minimum 350 words\n'
                 f'Target audience: class {cl} students.\n'
+                f'{insert_text}\n\n'
                 'The article must include:\n'
                 '1. Definition\n'
                 '2. Story-based explanation\n'
                 '3. Real-life example\n'
                 '4. article should be 1200 words talking about various aspects of the topic\n'
                 '5. The answer to the questions should be the full option text, not just letter or number. it should be full option text like if option1 is "ABCD" then ans should be "ABCD" not "1" or "a"\n'
+
 
                 'Do not use markdown language and Return JSON in the following format:\n'
                 'carefully write the JSON any mistake can lead to lethal disaster so be careful\n'

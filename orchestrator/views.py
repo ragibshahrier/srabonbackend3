@@ -77,57 +77,6 @@ from django.core.exceptions import ValidationError
 
 
 
-# class LoginView(APIView):
-#     def post(self, request):
-#         username = request.data.get('username')
-#         password = request.data.get('password')
-#         print(username)
-#         print(password)
-
-#         auth_url = f'{BACKEND3_BASE_URL}auth/jwt/create/'
-#         response = requests.post(auth_url, json={"username": username, "password": password})
-
-#         if response.status_code == 200:
-#             return Response({
-#                 "message": "Login successful",
-#                 "token": response.json().get("access")
-#             }, status=200)
-#         else:
-#             return Response({"error": "Invalid credentials"}, status=response.status_code)
-
-
-# class LoginView(APIView):
-#     def post(self, request):
-#         username = request.data.get('username')
-#         password = request.data.get('password')
-
-#         auth_url = f'{BACKEND3_BASE_URL}auth/jwt/create/'
-
-#         print(f"Sending login to: {auth_url}")
-#         print(f"Payload: {{'username': {username}, 'password': ******}}")
-
-#         try:
-#             response = requests.post(auth_url, json={"username": username, "password": password}, timeout=100)
-#             print(f"Auth Service Status: {response.status_code}")
-#             print(f"Auth Service Response: {response.text}")
-#         except requests.exceptions.RequestException as e:
-#             print(f"Request to auth service failed: {e}")
-#             return Response({"error": "Internal auth request failed"}, status=500)
-
-#         try:
-#             data = response.json()
-#         except ValueError:
-#             return Response({"error": "Auth service did not return JSON", "raw": response.text}, status=500)
-
-#         if response.status_code == 200:
-#             return Response({
-#                 "message": "Login successful",
-#                 "token": data.get("access")
-#             }, status=200)
-#         else:
-#             return Response({"error": data.get("detail", "Login failed")}, status=response.status_code)
-
-
 class Getserverinfo(APIView):
     def get(self,request):
         stat = checkready()
@@ -314,6 +263,65 @@ class StudentDetail(APIView):
     
 
 
+# class AddCourseView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+    
+        
+
+#     def post(self, request):
+#         username = request.user.username  # The logged-in user's username
+#         user_id = request.user.id  # The logged-in user's ID (primary key)
+#         user_email = request.user.id  # The logged-in user's ID (primary key)
+#         backend_id = encode_user_info(user_id, username, user_email)
+
+
+#         thisstudent = StudentProfile.objects.filter(user=request.user).first()
+
+
+#         course_name = request.data.get('title')  # Assuming the course data is sent in the request body
+#         course_subject = request.data.get('subject')
+
+#         try:
+#             # Make request to backend1 to store this student's course
+            
+
+#             airesponse = course_generator(cl = thisstudent.level, title = course_name, subject=course_subject)
+#             airesponse = add_bangla_translations(airesponse)
+#             response = send_course(backend_id, str(thisstudent.coursenumber), airesponse)
+
+#             thisstudent.coursenumber += 1
+#             thisstudent.save()
+
+#             # backend1_url = f"http://<BACKEND1_IP>:<PORT>/courses/"
+#             # response = requests.post(backend1_url, json={
+#             #     "userId": user_id,
+#             #     "course": course_data
+#             # })
+#             # print(airesponse)
+#             # airesponse_text = airesponse.get('text', 'No response text available')
+#             # print(f"AI Response Text: {airesponse_text}")
+
+            
+
+#             # If backend1 returns success, forward the data
+#             if response.status_code == 200:
+#                 level = thisstudent.level
+#                 print(f"Student's level: {level}")
+#                 print(f"Course name: {course_name}")
+#                 # airesponse = creating_time_course_generation([course_name],level)
+#                 # print(airesponse)
+
+#                 return Response(response.json(), status=200)
+#             else:
+#                 return Response({"error": "Failed to add course in backend1"}, status=response.status_code)
+#         except requests.exceptions.RequestException:
+#             return Response({"error": "Connection to backend1 failed"}, status=500)
+
+
+
+
+
 class AddCourseView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -330,16 +338,39 @@ class AddCourseView(APIView):
         thisstudent = StudentProfile.objects.filter(user=request.user).first()
 
 
-        course_name = request.data.get('title')  # Assuming the course data is sent in the request body
-        # course_description = request.data.get('description')
-        course_description = ""
-        course_subject = request.data.get('subject')
+        
 
+
+        if request.content_type.startswith('application/json'):
+            course_name = request.data.get('title')  # Assuming the course data is sent in the request body
+            course_subject = request.data.get('subject')
+            pdf_file = None  # no file can be sent via JSON
+        else:
+            course_name = request.POST.get('title')
+            course_subject = request.POST.get('subject')
+            pdf_file = request.FILES.get('file')
+
+        full_text = ""
+
+        if pdf_file:
+            try:
+                with pdfplumber.open(pdf_file) as pdf:
+                    for page in pdf.pages:
+                        text = page.extract_text()
+                        if text:
+                            full_text += text + "\n"
+            except Exception as e:
+                return Response({"error": "PDF processing failed"}, status=500)
+            
+        MAX_CHAR_LIMIT = 150000
+
+        full_text = reduce_text_distributed(full_text, MAX_CHAR_LIMIT)
+            
         try:
             # Make request to backend1 to store this student's course
             
 
-            airesponse = course_generator(cl = thisstudent.level, title = course_name, subject=course_subject)
+            airesponse = course_generator(cl = thisstudent.level, title = course_name, subject=course_subject, pdftext=full_text)
             airesponse = add_bangla_translations(airesponse)
             response = send_course(backend_id, str(thisstudent.coursenumber), airesponse)
 
@@ -370,8 +401,6 @@ class AddCourseView(APIView):
                 return Response({"error": "Failed to add course in backend1"}, status=response.status_code)
         except requests.exceptions.RequestException:
             return Response({"error": "Connection to backend1 failed"}, status=500)
-
-
 
 
 class CoursesView(APIView):
@@ -606,7 +635,11 @@ class CoursesView(APIView):
         return JsonResponse(objectt, safe=False)
     
 
-    
+
+
+
+
+  
 class ChatConvo(APIView):
     permission_classes = [IsAuthenticated]
 
