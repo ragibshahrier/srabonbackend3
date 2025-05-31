@@ -113,6 +113,7 @@ def add_bangla_translations(airesponse: str) -> str:
         tobe_translated.append(question['option2'])
         tobe_translated.append(question['option3'])
         tobe_translated.append(question['option4'])
+        tobe_translated.append(question['explanation'])
 
 
         
@@ -151,8 +152,9 @@ def add_bangla_translations(airesponse: str) -> str:
             "option2": translated_texts[ind + 2],
             "option3": translated_texts[ind + 3],
             "option4": translated_texts[ind + 4],
+            "explanation": translated_texts[ind + 5],
         })
-        ind += 5
+        ind += 6
         content['questions-bn'][i]['ans'] = content['questions-bn'][i][f'option{correct_option_number}']
 
     content['flashcards-bn'] = []
