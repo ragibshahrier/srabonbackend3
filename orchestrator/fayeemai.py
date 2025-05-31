@@ -105,7 +105,7 @@ def course_generator(subject, cl, title, pdftext):
                 '    ...'
                 '  ],\n'
                 '  "flashcards": [\n'
-                '    {"flashcard1": ""}, {"flashcard2": ""}, {"flashcard3": ""}, {"flashcard4": ""}, {"flashcard5": ""}\n'
+                '    {"flashcard1": ""}, {"flashcard2": ""}, {"flashcard3": ""}, {"flashcard4": ""}, {"flashcard5": ""}, {"flashcard6": ""}, {"flashcard7": ""}, {"flashcard8": ""}, {"flashcard9": ""}, {"flashcard10": ""}\n'
                 '  ]\n'
                 '}\n'
                 'Strictly follow this format. Return in json structure so that i can easily parse it to python dict.\n'
