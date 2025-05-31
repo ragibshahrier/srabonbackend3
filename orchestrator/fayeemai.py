@@ -74,7 +74,7 @@ def course_generator(subject, cl, title, pdftext):
             'use the informations that is relevant to the subject and title. Make the course based on it\n'
         )
 
-    print(insert_text)
+    # print(insert_text)
     while True:
         try:
             prompt = (
