@@ -14,7 +14,8 @@ urlpatterns = [
     path('courses/<int:course_id>/', CoursesView.as_view()),
 
     path('chats/', ChatConvo.as_view()),
-    
+
     path('score/', ScoreView.as_view()),
-    path('leaderboard/', AllStudentsProfileView.as_view())
+    path('leaderboard/', AllStudentsProfileView.as_view()),
+    path('coursecontent/<str:course_id>/', CourseContentView.as_view()),
 ]

@@ -11,10 +11,12 @@ from reportlab.lib.units import inch
 from reportlab.pdfgen.canvas import Canvas
 from google import genai
 
+from io import BytesIO
+
 # === CONFIGURATION ===
 FILE_ID = str(123333)  # unique identifier, like user ID
 PDF_PATH = f"input{FILE_ID}.pdf"
-BACKGROUND_IMAGE = "bg.png"
+BACKGROUND_IMAGE = "bg.jpg"
 GEMINI_API_KEY = "AIzaSyC1HI3M6mbFqhyFbRjc8AVAQ4S-k7Ftyi8"
 flag = 3  # 1 = general subject-based, 2 = PDF extraction
 
@@ -351,6 +353,81 @@ def chat_bot_response_generating(prev_response, current_response):
 
 
 
+def createPdf_with_HTTP_response(data):
+    styles = getSampleStyleSheet()
+    style_normal = styles["Normal"]
+    style_heading = styles["Heading1"]
+    flowables = []
 
+    if isinstance(data, dict):
+        data = [data]
+
+    sci_pattern = re.compile(r"([\d.]+)\s*[*x×]\s*10\^(-?\d+)")
+
+    for block in data:
+        if not isinstance(block, dict):
+            continue
+
+        if "title" in block:
+            flowables.append(Paragraph(f"<b>{block['title']}</b>", style_heading))
+            flowables.append(Spacer(1, 0.2 * inch))
+
+        if "subtitle" in block:
+            flowables.append(Paragraph(f"<i>{block['subtitle']}</i>", styles["Italic"]))
+            flowables.append(Spacer(1, 0.2 * inch))
+
+        if "covered_topic" in block:
+            flowables.append(Paragraph(f"<b>Covered Topic:</b> {block['covered_topic']}", style_normal))
+            flowables.append(Spacer(1, 0.2 * inch))
+
+        if "article" in block:
+            for para in block["article"].split("\n\n"):
+                flowables.append(Paragraph(para.strip(), style_normal))
+                flowables.append(Spacer(1, 0.15 * inch))
+
+        flowables.append(Spacer(1, 0.4 * inch))
+        flowables.append(Paragraph("<b>Multiple Choice Questions</b>", style_heading))
+        flowables.append(Spacer(1, 0.3 * inch))
+
+        if "questions" in block:
+            for q in block["questions"]:
+                for key, value in q.items():
+                    if key == "question": label = "Question:"
+                    elif key == "ans": label = "Answer:"
+                    elif key == "explanation": label = "Explanation:"
+                    elif key.startswith("option"): label = f"{key[-1]}. "
+                    else: label = key.capitalize()
+
+                    val_str = str(value).strip()
+                    val_str = sci_pattern.sub(lambda m: f"{m.group(1)} × 10<super>{m.group(2)}</super>", val_str)
+
+                    flowables.append(Paragraph(f"<b>{label}</b> {val_str}", style_normal))
+                    flowables.append(Spacer(1, 0.1 * inch))
+                flowables.append(Spacer(1, 0.3 * inch))
         
+        if "flashcards" in block:
+            flowables.append(Spacer(1, 0.4 * inch))
+            flowables.append(Paragraph("<b>Flash Cards</b>", style_heading))
+            flowables.append(Spacer(1, 0.3 * inch))
+            cnt = 1
+            for card in block["flashcards"]:
+                for key, value in card.items() :
+                    label = "Flashcard " + str(cnt) + ". "
+                    cnt = cnt + 1
+                    flowables.append(Paragraph(f"<b>{label}</b> {value}", style_normal))
+                    flowables.append(Spacer(1, 0.3 * inch))
 
+
+
+
+    buffer = BytesIO()
+    frame = Frame(inch, inch, A4[0] - 2 * inch, A4[1] - 2 * inch)
+    doc = BaseDocTemplate(buffer, pagesize=A4)
+    doc.addPageTemplates([PageTemplate(id='template', frames=[frame], onPage=draw_background)])
+    try:
+        doc.build(flowables)
+    except Exception as e:
+        print("PDF build failed:", e)
+
+    buffer.seek(0)
+    return buffer

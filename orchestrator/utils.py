@@ -106,6 +106,7 @@ def add_bangla_translations(airesponse: str) -> str:
         tobe_translated.append(content['title'])
         tobe_translated.append(content['subtitle'])
         tobe_translated.append(content['description'])
+        tobe_translated.append(content['covered_topic'])
 
         for i in range(len(content['questions'])):
             question = content['questions'][i]
@@ -133,6 +134,8 @@ def add_bangla_translations(airesponse: str) -> str:
         content['subtitle-bn'] = translated_texts[ind]
         ind += 1
         content['description-bn'] = translated_texts[ind]
+        ind += 1
+        content['covered_topic-bn'] = translated_texts[ind]
         ind += 1
 
 

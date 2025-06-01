@@ -10,6 +10,7 @@ import requests
 
 
 from django.http import JsonResponse
+from django.http import HttpResponse
 from django.views import View
 from .wrapper import *
 from .fayeemai import *
@@ -406,24 +407,24 @@ class AddCourseView(APIView):
 class CoursesView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, *args, **kwargs):
-        course_id = kwargs.get('course_id')
+    # def get(self, request, *args, **kwargs):
+    #     course_id = kwargs.get('course_id')
 
-        username = request.user.username  # The logged-in user's username
-        user_id = request.user.id  # The logged-in user's ID (primary key)
-        user_email = request.user.id  # The logged-in user's ID (primary key)
-        backend_id = encode_user_info(user_id, username, user_email)
+    #     username = request.user.username  # The logged-in user's username
+    #     user_id = request.user.id  # The logged-in user's ID (primary key)
+    #     user_email = request.user.id  # The logged-in user's ID (primary key)
+    #     backend_id = encode_user_info(user_id, username, user_email)
 
-        # Find the course with the matching ID
-        response = get_course_spec(user_id=backend_id, course_id=course_id)
-        if response.status_code == 200:
-            course_data = response.json()
-            # print(course_data)
-            # Assuming the course data is in a field called 'course'
-            return JsonResponse(course_data, safe=False)
-        else:
-            # Handle the case where the course is not found
-            return Response({"error": "Course not found"}, status=response.status_code)
+    #     # Find the course with the matching ID
+    #     response = get_course_spec(user_id=backend_id, course_id=course_id)
+    #     if response.status_code == 200:
+    #         course_data = response.json()
+    #         # print(course_data)
+    #         # Assuming the course data is in a field called 'course'
+    #         return JsonResponse(course_data, safe=False)
+    #     else:
+    #         # Handle the case where the course is not found
+    #         return Response({"error": "Course not found"}, status=response.status_code)
         
     def get(self, request, *args, **kwargs):
         username = request.user.username  # The logged-in user's username
@@ -632,6 +633,8 @@ class CoursesView(APIView):
                 "description": "Start programming with Python: syntax, variables, loops, and functions."
             },
         ]
+        
+        
         return JsonResponse(objectt, safe=False)
     
 
@@ -732,3 +735,42 @@ class AllStudentsProfileView(APIView):
             })
 
         return Response(profiles_data, status=200)
+
+
+
+
+
+class CourseContentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, course_id):
+        username = request.user.username  # The logged-in user's username
+        user_id = request.user.id  # The logged-in user's ID (primary key)
+        user_email = request.user.id  # The logged-in user's ID (primary key)
+        backend_id = encode_user_info(user_id, username, user_email)
+
+        response = get_course_spec(user_id=backend_id, course_id=course_id)
+
+        data = response.json()
+        data = data['course']['parent']
+        data = json.loads(data)
+        # print(type(data))
+        # with open("testdict", "w", encoding="utf-8") as f:
+        #     f.write(str(data))
+        # data = dict
+        # # print(data)
+        # create_pdf(data, "test.pdf")
+        # return Response({"message": "PDF created successfully"}, status=200)
+        try:
+            pdf_buffer = createPdf_with_HTTP_response(data)
+
+            response = HttpResponse(
+                pdf_buffer, 
+                content_type='application/pdf',
+                headers={
+                    'Content-Disposition': f'attachment; filename="o.pdf"'
+                }
+            )
+            return response
+        except Exception as e:
+            return Response({"error": "Failed to create PDF", "details": str(e)}, status=500)
