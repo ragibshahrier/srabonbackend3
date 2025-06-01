@@ -259,7 +259,7 @@ class StudentDetail(APIView):
         # Save the updated student_profile
         student_profile.save()
 
-        return Response({"message": "Score submitted successfully"}, status=200)
+        return Response({"message": "Profile updated successfully"}, status=200)
     
 
 
@@ -687,3 +687,48 @@ class ChatConvo(APIView):
         else:
             return Response({"error": "Failed to send chat"}, status=response.status_code)
 
+
+
+
+class ScoreView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        delta_score = request.data.get('delta_score')
+
+        profile = StudentProfile.objects.filter(user=user).first()
+
+        # Update the user's points in the database
+        profile.points += delta_score
+        profile.save()
+
+        return Response({"message": "Score updated successfully", "score":profile.points}, status=200)
+    
+    def get(self, request):
+        user = request.user
+        # Get the user's current score from the database
+        profile = StudentProfile.objects.filter(user=user).first()
+        current_score = profile.points
+
+        return Response({"score": current_score}, status=200)
+    
+
+class AllStudentsProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Get all student profiles
+        student_profiles = StudentProfile.objects.exclude(user__username='admin').order_by('-points')
+
+        # Serialize the profiles into a list of dictionaries
+        profiles_data = []
+        for profile in student_profiles:
+            profiles_data.append({
+                "username": profile.user.username,
+                "name": profile.name,
+                "score": profile.points,
+                "class": profile.level,
+            })
+
+        return Response(profiles_data, status=200)
