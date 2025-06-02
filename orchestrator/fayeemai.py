@@ -5,8 +5,12 @@ import pdfplumber
 import pytesseract
 from PIL import Image
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer
+from reportlab.platypus import (
+    Table, TableStyle, KeepTogether
+)
+from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.pdfgen.canvas import Canvas
 from google import genai
@@ -256,6 +260,10 @@ def save_json(data, path):
 # === PDF BACKGROUND ===
 def draw_background(canvas: Canvas, doc):
     canvas.drawImage(BACKGROUND_IMAGE, 0, 0, width=A4[0], height=A4[1])
+    # Optional: Add a footer
+    canvas.setFont("Helvetica-Oblique", 9)
+    canvas.setFillColorRGB(0.4, 0.4, 0.4)
+    canvas.drawString(inch, 0.5 * inch, f"Page {doc.page}")
 
 # === PDF BUILDER ===
 def create_pdf(data, output_path):
@@ -355,6 +363,133 @@ def chat_bot_response_generating(prev_response, current_response):
 
 def createPdf_with_HTTP_response(data):
     styles = getSampleStyleSheet()
+    
+    # Custom styles
+    heading_style = ParagraphStyle(
+        name='Heading1',
+        parent=styles['Heading1'],
+        textColor=colors.darkblue,
+        spaceAfter=12
+    )
+    
+    subheading_style = ParagraphStyle(
+        name='SubHeading',
+        parent=styles['Heading2'],
+        textColor=colors.darkred,
+        italic=True,
+        spaceAfter=10
+    )
+
+    normal_style = ParagraphStyle(
+        name='Normal',
+        parent=styles['Normal'],
+        leading=14
+    )
+
+    label_style = ParagraphStyle(
+        name='Label',
+        parent=styles['Normal'],
+        textColor=colors.darkgreen,
+        leading=13,
+        spaceAfter=3
+    )
+
+    sci_pattern = re.compile(r"([\d.]+)\s*[*x×]\s*10\^(-?\d+)")
+
+    if isinstance(data, dict):
+        data = [data]
+
+    flowables = []
+
+    for block in data:
+        if not isinstance(block, dict):
+            continue
+
+        if "title" in block:
+            flowables.append(Paragraph(f"<b>{block['title']}</b>", heading_style))
+            flowables.append(Spacer(1, 0.2 * inch))
+
+        if "subtitle" in block:
+            flowables.append(Paragraph(f"<i>{block['subtitle']}</i>", subheading_style))
+            flowables.append(Spacer(1, 0.15 * inch))
+
+        if "covered_topic" in block:
+            flowables.append(Paragraph(f"<b>Covered Topic:</b> {block['covered_topic']}", normal_style))
+            flowables.append(Spacer(1, 0.15 * inch))
+
+        if "article" in block:
+            for para in block["article"].split("\n\n"):
+                para = sci_pattern.sub(lambda m: f"{m.group(1)} × 10<super>{m.group(2)}</super>", para.strip())
+                flowables.append(Paragraph(para, normal_style))
+                flowables.append(Spacer(1, 0.1 * inch))
+
+        # Multiple Choice Section
+        if "questions" in block:
+            flowables.append(Spacer(1, 0.3 * inch))
+            flowables.append(Paragraph("<b>Multiple Choice Questions</b>", heading_style))
+            flowables.append(Spacer(1, 0.2 * inch))
+
+            for q in block["questions"]:
+                q_group = []
+                for key, value in q.items():
+                    if key == "question": label = "Question:"
+                    elif key == "ans": label = "Answer:"
+                    elif key == "explanation": label = "Explanation:"
+                    elif key.startswith("option"): label = f"{key[-1]}. "
+                    else: label = key.capitalize()
+
+                    val_str = str(value).strip()
+                    val_str = sci_pattern.sub(lambda m: f"{m.group(1)} × 10<super>{m.group(2)}</super>", val_str)
+
+                    q_group.append(Paragraph(f"<b>{label}</b> {val_str}", normal_style))
+                flowables.append(KeepTogether(q_group + [Spacer(1, 0.2 * inch)]))
+
+        # Flashcard Section
+        if "flashcards" in block:
+            flowables.append(Spacer(1, 0.3 * inch))
+            flowables.append(Paragraph("<b>Flash Cards</b>", heading_style))
+            flowables.append(Spacer(1, 0.2 * inch))
+
+            for idx, card in enumerate(block["flashcards"], 1):
+                content = []
+                for key, value in card.items():
+                    val_str = str(value).strip()
+                    val_str = sci_pattern.sub(lambda m: f"{m.group(1)} × 10<super>{m.group(2)}</super>", val_str)
+                    content.append(Paragraph(val_str, normal_style))
+
+                # Flashcard Table Box
+                table = Table([[Paragraph(f"<b>Flashcard {idx}</b>", label_style)], [content[0]]],
+                              colWidths=[6.2 * inch])
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.beige),
+                    ('BOX', (0, 0), (-1, -1), 1, colors.brown),
+                    ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                    ('TOPPADDING', (0, 0), (-1, -1), 8)
+                ]))
+                flowables.append(table)
+                flowables.append(Spacer(1, 0.25 * inch))
+
+    # Page Layout
+    buffer = BytesIO()
+    frame = Frame(inch, inch, A4[0] - 2 * inch, A4[1] - 2 * inch, leftPadding=12, rightPadding=12)
+    doc = BaseDocTemplate(buffer, pagesize=A4)
+    doc.addPageTemplates([PageTemplate(id='template', frames=[frame], onPage=draw_background)])
+
+    try:
+        doc.build(flowables)
+    except Exception as e:
+        print("PDF build failed:", e)
+
+    buffer.seek(0)
+    return buffer
+
+
+
+def createPdf_with_HTTP_response_bangla(data):
+    styles = getSampleStyleSheet()
     style_normal = styles["Normal"]
     style_heading = styles["Heading1"]
     flowables = []
@@ -369,24 +504,24 @@ def createPdf_with_HTTP_response(data):
             continue
 
         if "title" in block:
-            flowables.append(Paragraph(f"<b>{block['title']}</b>", style_heading))
+            flowables.append(Paragraph(f"<b>{block['title-bn']}</b>", style_heading))
             flowables.append(Spacer(1, 0.2 * inch))
 
         if "subtitle" in block:
-            flowables.append(Paragraph(f"<i>{block['subtitle']}</i>", styles["Italic"]))
+            flowables.append(Paragraph(f"<i>{block['subtitle-bn']}</i>", styles["Italic"]))
             flowables.append(Spacer(1, 0.2 * inch))
 
         if "covered_topic" in block:
-            flowables.append(Paragraph(f"<b>Covered Topic:</b> {block['covered_topic']}", style_normal))
+            flowables.append(Paragraph(f"<b>আলোচিত বিষয়:</b> {block['covered_topic-bn']}", style_normal))
             flowables.append(Spacer(1, 0.2 * inch))
 
         if "article" in block:
-            for para in block["article"].split("\n\n"):
+            for para in block["article-bn"].split("\n\n"):
                 flowables.append(Paragraph(para.strip(), style_normal))
                 flowables.append(Spacer(1, 0.15 * inch))
 
         flowables.append(Spacer(1, 0.4 * inch))
-        flowables.append(Paragraph("<b>Multiple Choice Questions</b>", style_heading))
+        flowables.append(Paragraph("<b>বহুনির্বাচনী প্রশ্ন</b>", style_heading))
         flowables.append(Spacer(1, 0.3 * inch))
 
         if "questions" in block:

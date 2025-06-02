@@ -11,11 +11,11 @@ urlpatterns = [
     path('studentinfo/', StudentDetail.as_view()),
     path('addcourses/', AddCourseView.as_view()),
     path('courses/', CoursesView.as_view()),
-    path('courses/<int:course_id>/', CoursesView.as_view()),
+    path('courses/<str:course_id>/', CoursesView.as_view()),
 
     path('chats/', ChatConvo.as_view()),
 
     path('score/', ScoreView.as_view()),
     path('leaderboard/', AllStudentsProfileView.as_view()),
-    path('coursecontent/<str:course_id>/', CourseContentView.as_view()),
+    path('coursecontent/<str:course_id>/<str:lang>/', CourseContentView.as_view()),
 ]

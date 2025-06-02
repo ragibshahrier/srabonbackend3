@@ -743,7 +743,7 @@ class AllStudentsProfileView(APIView):
 class CourseContentView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, course_id):
+    def get(self, request, course_id, lang="en"):
         username = request.user.username  # The logged-in user's username
         user_id = request.user.id  # The logged-in user's ID (primary key)
         user_email = request.user.id  # The logged-in user's ID (primary key)
@@ -762,8 +762,10 @@ class CourseContentView(APIView):
         # create_pdf(data, "test.pdf")
         # return Response({"message": "PDF created successfully"}, status=200)
         try:
-            pdf_buffer = createPdf_with_HTTP_response(data)
-
+            if(lang=="en"):
+                pdf_buffer = createPdf_with_HTTP_response(data)
+            else:
+                pdf_buffer = createPdf_with_HTTP_response_bangla(data)
             response = HttpResponse(
                 pdf_buffer, 
                 content_type='application/pdf',
