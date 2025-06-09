@@ -3,10 +3,10 @@ import json
 from datetime import datetime
 import os
 
-
+BASE_URL = 'http://localhost:5000/'  # Replace with your backend URL
 # BASE_URL = "http://192.168.0.105:5000"  # Replace with "http://localhost:5000" or your local IP
 # BASE_URL = "https://srabonbackend1.onrender.com"  # Replace with "http://localhost:5000" or your local IP
-BASE_URL = os.getenv("BACKEND1_BASE_URL", "https://srabonbackend1.onrender.com")
+#BASE_URL = os.getenv("BACKEND1_BASE_URL", "https://srabonbackend1.onrender.com")
 
 if BASE_URL.endswith('/'):
     BASE_URL = BASE_URL[:-1]  # Remove trailing slash if present
@@ -24,12 +24,19 @@ def checkready():
     except requests.exceptions.RequestException as e:
         return -1
 
+def send_explorer_course(user_id, courseID):
+    return requests.post(f"{BASE_URL}/send", json={
+        "mode": "courseadd2",
+        "user_id": str(user_id),
+        "courseID": courseID
+    })
 
 
-def send_course(user_id, name, parent):
+def send_course(user_id,author_name ,name, parent):
     return requests.post(f"{BASE_URL}/send", json={
         "mode": "courseadd",
         "user_id": str(user_id),
+        "author_name" : author_name,
         "name": name,
         "parent": parent, # parent === description
     })
@@ -113,6 +120,12 @@ def get_article(course, article_id):
         "articleID": article_id
     })
 
+def get_explorer_courses(user_id):
+    return requests.post(f"{BASE_URL}/get", json={
+        "mode": "coursegetexplorer",
+        "user_id": str(user_id)
+    })
+
 def mark_question_solved(user_id, question_id):
     return requests.post(f"{BASE_URL}/process", json={
         "mode": "quesprocess",
@@ -153,5 +166,20 @@ def get_course_spec(user_id, course_id):
     return requests.post(f"{BASE_URL}/get", json={
         "mode": "coursegetspec",
         "user_id": str(user_id),
-        "name": course_id
+        "courseID": course_id
     })
+
+def set_course_public(user_id,course_id):
+    return requests.post(f"{BASE_URL}/process", json={
+        "mode": "setPublic",
+        "user_id": str(user_id),
+        "courseID": course_id
+    })
+
+def set_course_private(user_id, course_id):
+    return requests.post(f"{BASE_URL}/process", json={
+        "mode": "setPrivate",
+        "user_id": str(user_id),
+        "courseID": course_id
+    })
+
