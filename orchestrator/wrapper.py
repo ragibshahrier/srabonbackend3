@@ -3,10 +3,10 @@ import json
 from datetime import datetime
 import os
 
-BASE_URL = 'http://localhost:5000/'  # Replace with your backend URL
+# BASE_URL = 'http://localhost:5000/'  # Replace with your backend URL
 # BASE_URL = "http://192.168.0.105:5000"  # Replace with "http://localhost:5000" or your local IP
 # BASE_URL = "https://srabonbackend1.onrender.com"  # Replace with "http://localhost:5000" or your local IP
-#BASE_URL = os.getenv("BACKEND1_BASE_URL", "https://srabonbackend1.onrender.com")
+BASE_URL = os.getenv("BACKEND1_BASE_URL", "https://srabonbackend1.onrender.com")
 
 if BASE_URL.endswith('/'):
     BASE_URL = BASE_URL[:-1]  # Remove trailing slash if present
