@@ -373,7 +373,7 @@ class AddCourseView(APIView):
 
             airesponse = course_generator(cl = thisstudent.level, title = course_name, subject=course_subject, pdftext=full_text)
             airesponse = add_bangla_translations(airesponse)
-            response = send_course(backend_id, str(thisstudent.coursenumber), airesponse)
+            response = send_course(user_id=backend_id, author_name=username, name=str(thisstudent.coursenumber), parent=airesponse)
 
             thisstudent.coursenumber += 1
             thisstudent.save()
