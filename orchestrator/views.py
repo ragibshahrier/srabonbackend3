@@ -67,7 +67,7 @@ class StudentCoursesView(APIView):
 from rest_framework.views import APIView
 from rest_framework.response import Response
 import requests
-from .models import StudentProfile
+from .models import StudentProfile, Notification
 
 from django.contrib.auth.models import User
 from rest_framework import status
@@ -763,3 +763,110 @@ class PersonalCourseStatsView(APIView):
             return Response({"message": "Course progress updated successfully"}, status=200)
         else:
             return Response({"error": "Failed to update course progress"}, status=response.status_code)
+        
+
+class NotificationView(APIView):
+    def get(self, request, arg):
+        user = request.user
+        notifications = Notification.objects.filter(user=user).order_by('-timestamp')
+
+        if arg == "all":
+            notifications_data = [
+                {
+                    "id": notification.unique_id,
+                    "message": notification.message,
+                    "timestamp": notification.timestamp.isoformat(),
+                    "is_read": notification.is_read
+                } for notification in notifications
+            ]
+            return Response(notifications_data, status=200)
+        
+        elif arg == "unread":
+            unread_notifications = notifications.filter(is_read=False)
+            unread_notifications_data = [
+                {
+                    "id": notification.unique_id,
+                    "message": notification.message,
+                    "timestamp": notification.timestamp.isoformat(),
+                    "is_read": notification.is_read
+                } for notification in unread_notifications
+            ]
+            return Response(unread_notifications_data, status=200)
+        
+        elif arg.isdigit():
+            quantity = int(arg)
+            if quantity <= 0:
+                return Response({"error": "Quantity must be a positive integer"}, status=400)
+            recent_notifications = notifications[:quantity]
+            recent_notifications_data = [
+                {
+                    "id": notification.unique_id,
+                    "message": notification.message,
+                    "timestamp": notification.timestamp.isoformat(),
+                    "is_read": notification.is_read
+                } for notification in recent_notifications
+            ]
+            return Response(recent_notifications_data, status=200)
+        
+        else:
+            return Response({"error": "Invalid argument"}, status=400)
+    
+    def post(self, request, arg):
+        user = request.user
+        
+        if arg=="make":
+            message = request.data.get('message')
+            if not message:
+                return Response({"error": "Message is required"}, status=400)
+
+            notification = Notification(user=user, message=message)
+            notification.save()
+            return Response({"message": "Notification created", "id": notification.unique_id}, status=201)
+        elif arg == "supermake":
+            if not user.is_superuser:
+                return Response({"error": "Permission denied. Only superusers can create this notification."}, status=403)
+            message = request.data.get('message')
+            if not message:
+                return Response({"error": "Message is required"}, status=400)
+            # Create a notification for all users
+            users = User.objects.all()
+            for user in users:
+                # Create a notification for each user    
+                notification = Notification(user=user, message=message)
+                notification.save()
+
+            
+            return Response({"message": "Superuser notification created", "id": notification.unique_id}, status=201)
+        
+        
+        
+    def put(self, request, arg):
+        user = request.user
+        
+        if arg == "readall":
+            Notification.objects.filter(user=user, is_read=False).update(is_read=True)
+            return Response({"message": "All notifications marked as read"}, status=200)
+
+        notification_id = request.data.get('id')
+
+        if not notification_id:
+            return Response({"error": "Notification ID is required"}, status=400)
+
+        try:
+            notification = Notification.objects.get(unique_id=notification_id, user=user)
+            if arg == "read":
+                notification.is_read = True
+                notification.save()
+                return Response({"message": "Notification marked as read"}, status=200)
+            elif arg == "unread":
+                notification.is_read = False
+                notification.save()
+                return Response({"message": "Notification marked as unread"}, status=200)
+            elif arg == "delete":
+                notification.delete()
+                return Response({"message": "Notification deleted"}, status=200)
+            else:
+                return Response({"error": "Invalid action"}, status=400)
+        except Notification.DoesNotExist:
+            return Response({"error": "Notification not found"}, status=404)
+        
