@@ -251,6 +251,7 @@ class StudentDetail(APIView):
         if new_subjects:
             # Ensure new_subjects is a list and convert it to a JSON string
             if isinstance(new_subjects, list):
+                new_subjects = list(set([s.capitalize() for s in new_subjects]))
                 student_profile.favsubjects = json.dumps(new_subjects)
             else:
                 return Response({"error": "Subjects must be a list"}, status=400)
@@ -262,64 +263,6 @@ class StudentDetail(APIView):
 
         return Response({"message": "Profile updated successfully"}, status=200)
     
-
-
-# class AddCourseView(APIView):
-#     permission_classes = [IsAuthenticated]
-
-    
-        
-
-#     def post(self, request):
-#         username = request.user.username  # The logged-in user's username
-#         user_id = request.user.id  # The logged-in user's ID (primary key)
-#         user_email = request.user.id  # The logged-in user's ID (primary key)
-#         backend_id = encode_user_info(user_id, username, user_email)
-
-
-#         thisstudent = StudentProfile.objects.filter(user=request.user).first()
-
-
-#         course_name = request.data.get('title')  # Assuming the course data is sent in the request body
-#         course_subject = request.data.get('subject')
-
-#         try:
-#             # Make request to backend1 to store this student's course
-            
-
-#             airesponse = course_generator(cl = thisstudent.level, title = course_name, subject=course_subject)
-#             airesponse = add_bangla_translations(airesponse)
-#             response = send_course(backend_id, str(thisstudent.coursenumber), airesponse)
-
-#             thisstudent.coursenumber += 1
-#             thisstudent.save()
-
-#             # backend1_url = f"http://<BACKEND1_IP>:<PORT>/courses/"
-#             # response = requests.post(backend1_url, json={
-#             #     "userId": user_id,
-#             #     "course": course_data
-#             # })
-#             # print(airesponse)
-#             # airesponse_text = airesponse.get('text', 'No response text available')
-#             # print(f"AI Response Text: {airesponse_text}")
-
-            
-
-#             # If backend1 returns success, forward the data
-#             if response.status_code == 200:
-#                 level = thisstudent.level
-#                 print(f"Student's level: {level}")
-#                 print(f"Course name: {course_name}")
-#                 # airesponse = creating_time_course_generation([course_name],level)
-#                 # print(airesponse)
-
-#                 return Response(response.json(), status=200)
-#             else:
-#                 return Response({"error": "Failed to add course in backend1"}, status=response.status_code)
-#         except requests.exceptions.RequestException:
-#             return Response({"error": "Connection to backend1 failed"}, status=500)
-
-
 
 
 
@@ -407,24 +350,6 @@ class AddCourseView(APIView):
 class CoursesView(APIView):
     permission_classes = [IsAuthenticated]
 
-    # def get(self, request, *args, **kwargs):
-    #     course_id = kwargs.get('course_id')
-
-    #     username = request.user.username  # The logged-in user's username
-    #     user_id = request.user.id  # The logged-in user's ID (primary key)
-    #     user_email = request.user.id  # The logged-in user's ID (primary key)
-    #     backend_id = encode_user_info(user_id, username, user_email)
-
-    #     # Find the course with the matching ID
-    #     response = get_course_spec(user_id=backend_id, course_id=course_id)
-    #     if response.status_code == 200:
-    #         course_data = response.json()
-    #         # print(course_data)
-    #         # Assuming the course data is in a field called 'course'
-    #         return JsonResponse(course_data, safe=False)
-    #     else:
-    #         # Handle the case where the course is not found
-    #         return Response({"error": "Course not found"}, status=response.status_code)
         
     def get(self, request, *args, **kwargs):
         username = request.user.username  # The logged-in user's username
@@ -776,3 +701,65 @@ class CourseContentView(APIView):
             return response
         except Exception as e:
             return Response({"error": "Failed to create PDF", "details": str(e)}, status=500)
+        
+
+class PersonalCourseStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, course_id):
+        username = request.user.username  # The logged-in user's username
+        user_id = request.user.id  # The logged-in user's ID (primary key)
+        user_email = request.user.id  # The logged-in user's email
+        backend_id = encode_user_info(user_id, username, user_email)
+        studentProfile = StudentProfile.objects.filter(user=request.user).first()
+
+        # Get the user's course progress for the specified course
+        course_progress = get_course_progress(user_id=backend_id, courseID=course_id)
+        if course_progress.status_code != 200:
+            return Response({"error": "Failed to retrieve course progress"}, status=course_progress.status_code)
+        
+        course_progress = course_progress.json()
+        if 'progress' not in course_progress:
+            return Response({"error": "Course progress not found"}, status=404)
+        
+        course_progress = course_progress['progress']
+
+        return Response(course_progress, status=200)
+    
+    def post(self, request, course_id):
+        username = request.user.username
+        user_id = request.user.id
+        user_email = request.user.id
+        backend_id = encode_user_info(user_id, username, user_email)
+        studentProfile = StudentProfile.objects.filter(user=request.user).first()
+        # Get the user's course progress for the specified course
+        course_progress = get_course_progress(user_id=backend_id, courseID=course_id)
+        course_progress = course_progress.json()
+        course_progress = course_progress['progress']
+
+        data = request.data
+
+        # progress = {
+        #     "description_read":course.get("description_read", 0),
+        #     "flashcards_read": course.get("flashcards_read", 0),
+        #     "articles_read": course.get("articles_read", 0),
+        #     "quiz_score": course.get("quiz_score", 0),
+        #     "previous_answers": course.get("previous_answers", ""),
+        # }
+
+        course_progress["description_read"] = data.get("description_read", course_progress.get("description_read", 0))
+        course_progress["flashcards_read"] = data.get("flashcards_read", course_progress.get("flashcards_read", 0))
+        course_progress["articles_read"] = data.get("articles_read", course_progress.get("articles_read", 0))
+        course_progress["quiz_score"] = data.get("quiz_score", course_progress.get("quiz_score", 0))
+        course_progress["previous_answers"] = data.get("previous_answers", course_progress.get("previous_answers", ""))
+
+
+        if "previous_answers" in course_progress and isinstance(course_progress["previous_answers"], str):
+            course_progress["previous_answers"] = course_progress["previous_answers"].replace(" ", "").upper()
+
+        response = send_course_progress(user_id=backend_id, courseID=course_id, course_progress=course_progress)
+        # Update the user's course progress in the database
+        if response.status_code == 200:
+            return Response({"message": "Course progress updated successfully"}, status=200)
+        else:
+            return Response({"error": "Failed to update course progress"}, status=response.status_code)

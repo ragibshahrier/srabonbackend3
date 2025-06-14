@@ -89,6 +89,14 @@ def send_status(user_id):
         "user_id": str(user_id)
     })
 
+def send_course_progress(user_id, courseID, course_progress):
+    return requests.post(f"{BASE_URL}/send", json={
+        "mode": "courseprogress",
+        "user_id": str(user_id),
+        "courseID": courseID,
+        "course_progress": course_progress
+    })
+
 def get_chats(user_id, receiver, count=10):
     return requests.post(f"{BASE_URL}/get", json={
         "mode": "chatget",
@@ -124,6 +132,13 @@ def get_explorer_courses(user_id):
     return requests.post(f"{BASE_URL}/get", json={
         "mode": "coursegetexplorer",
         "user_id": str(user_id)
+    })
+
+def get_course_progress(user_id, courseID):
+    return requests.post(f"{BASE_URL}/get", json={
+        "mode": "coursegetprogress",
+        "user_id": str(user_id),
+        "courseID": courseID
     })
 
 def mark_question_solved(user_id, question_id):
