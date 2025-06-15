@@ -869,4 +869,15 @@ class NotificationView(APIView):
                 return Response({"error": "Invalid action"}, status=400)
         except Notification.DoesNotExist:
             return Response({"error": "Notification not found"}, status=404)
+    
+    def delete(self, request, arg):
+        user = request.user
+        
+        if arg == "all":
+            Notification.objects.filter(user=user).delete()
+            return Response({"message": "All notifications deleted"}, status=200)
+        
+        elif arg == "read":
+            Notification.objects.filter(user=user, is_read=True).delete()
+            return Response({"message": "All read notifications deleted"}, status=200)
         
