@@ -204,7 +204,9 @@ class StudentDetail(APIView):
         subjects = student_profile.favsubjects
         subjects = json.loads(subjects) if subjects else []
 
-        
+        if isinstance(subjects, list):
+            subjects = list(set([s.capitalize() for s in subjects]))
+
         print(f"Authenticated student's username: {username}")
         print(f"Authenticated student's ID: {userid}")
         # res = get_course_list("user123")
