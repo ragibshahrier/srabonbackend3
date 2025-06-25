@@ -566,3 +566,125 @@ def createPdf_with_HTTP_response_bangla(data):
 
     buffer.seek(0)
     return buffer
+
+
+def summarizer(main_text, number_of_words, summary_type, tone, audience, format_type):
+    
+    prompt = (
+        "You are a highly skilled summarizer. Your task is to generate a summary following these instructions:\n\n"
+        f"1. The summary must be within {number_of_words} words. Strictly follow this limit.\n"
+        f"2. Summary type: {summary_type}.\n"
+        f"3. Tone: {tone}.\n"
+        f"4. Audience: {audience}.\n"
+        f"5. Format: {format_type}.\n\n"
+        "Do not include any extra comments or explanation. Only output the summary as requested.\n\n"
+        f"Text to summarize:\n{main_text}"
+    )
+
+    # Call Gemini API
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+    response = {
+        "summary": response.text.strip()
+    }
+    print(response.text)
+
+    return response
+
+
+def grammar_corrector(text):
+    prompt = (
+        "You are a professional grammar corrector.\n"
+        "I will give you a full text. Your job is:\n"
+        "1. Correct all grammar, spelling, tense, and syntax mistakes across the full text.\n"
+        "2. Explain major types of errors and why they were wrong.\n"
+        "3. Do not add any extra response. Just generate a valid JSON output strictly in the following format:\n\n"
+        "{\n"
+        '  "Corrected_text": "....",\n'
+        '  "Number_of_Wrong_Sentences": N,\n'
+        '  "Wrong_Sentence1": "....",\n'
+        '  "Explanation1": "....",\n'
+        '  "Wrong_Sentence2": "....",\n'
+        '  "Explanation2": "....",\n'
+        '  ... (continue for all wrong sentences)\n'
+        "}\n\n"
+        "Strictly follow this JSON format. Ensure that the numbering is consistent between Wrong_Sentence and Explanation. The number of wrong sentences must match Number_of_Wrong_Sentences.\n"
+        "Here is the text:\n"
+        f"{text}"
+    )
+
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+    
+    print(response.text)
+    try:
+        response = response.text
+        # Attempt to parse the response as JSON
+        response = json.loads(response)
+        return response
+    except json.JSONDecodeError:
+        print("❌ Failed to parse JSON response.")
+        return None
+
+# Paraphraser Function
+def paraphraser(text, style):
+    prompt = (
+        "You are a professional paraphraser.\n"
+        f"Your task is to paraphrase the entire text in '{style}' style.\n"
+        "Preserve the original meaning but rewrite the sentences naturally.\n"
+        "Donot add any extra comments or anthing else just output the text"
+        "Output only the paraphrased version.\n"
+        f"Text:\n{text}"
+    )
+    
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+    print(response.text)
+
+    response = response.text
+    response = {
+        "paraphrased_text": response.strip()
+    }
+
+    return response
+
+# if __name__ == "__main__":
+#     # Example usage
+#     text = """In recent decades, the rapid advancement of technology has significantly transformed multiple aspects of human life, including communication, healthcare, education, transportation, and entertainment. The invention of the internet has revolutionized how people access information, breaking down geographical barriers and enabling instantaneous global communication. Social media platforms have become powerful tools for personal expression, business marketing, and political discourse, though they have also raised concerns about privacy, mental health, and the spread of misinformation.
+
+# In healthcare, cutting-edge technologies such as artificial intelligence, machine learning, telemedicine, and wearable devices have improved diagnostic accuracy, personalized treatment plans, and patient monitoring. The COVID-19 pandemic accelerated the adoption of telehealth services, allowing patients to consult with healthcare providers remotely, reducing the strain on healthcare facilities, and providing greater access to medical care for people in remote areas.
+
+# The education sector has witnessed a paradigm shift with the integration of e-learning platforms, virtual classrooms, and digital resources, making education more accessible and flexible. Online courses from prestigious institutions are now available to students worldwide, providing opportunities for lifelong learning and skill development. However, the digital divide remains a significant issue, with many students in developing countries lacking reliable internet access and necessary devices.
+
+# Transportation has seen remarkable changes with the development of electric vehicles, autonomous driving technology, and innovations in public transit systems. Companies like Tesla have pushed the boundaries of electric mobility, while autonomous vehicle research promises to reshape urban transportation and logistics in the coming years.
+
+# The entertainment industry has also been revolutionized, with streaming services replacing traditional cable television and offering consumers on-demand access to vast libraries of movies, shows, and music. Virtual reality and augmented reality technologies are creating new immersive experiences for gaming, education, and even professional training.
+
+# Despite these remarkable advancements, several ethical, social, and economic challenges accompany technological progress. Issues such as data security, job displacement due to automation, and ethical concerns around AI decision-making continue to spark debates among policymakers, industry leaders, and the public. As society moves forward, it is essential to strike a balance between embracing innovation and ensuring that its benefits are equitably distributed while mitigating its potential risks."""
+    
+#     #summarizer(
+#     #    main_text=text,  # use the above big text
+#     #    number_of_words=100,
+#     #    summary_type="Analytical",
+#     #    tone="Professional",
+#     #    audience="Policymakers",
+#     #    format_type="Paragraph"
+#     #)
+
+#     input_text = """
+#    The global economy has undergone significant changes over the past few decades due to rapid advancements in technology, globalization, and evolving consumer behavior. The rise of digital platforms has transformed how businesses operate, enabling companies to reach a broader audience, streamline their operations, and enhance customer experiences. E-commerce, in particular, has experienced tremendous growth, with millions of consumers now preferring to shop online rather than visit physical stores. This shift has forced traditional retailers to adapt their business models and invest heavily in digital transformation initiatives.
+
+# At the same time, globalization has led to increased interconnectedness among nations, creating both opportunities and challenges. While businesses benefit from access to international markets, they also face heightened competition and complex regulatory environments. The COVID-19 pandemic further highlighted the vulnerabilities of global supply chains, prompting companies to rethink their sourcing strategies and invest in building more resilient and flexible operations.
+
+# Additionally, changing consumer preferences are reshaping industries across the board. Today’s consumers are more informed, socially conscious, and value-driven, often prioritizing sustainability, ethical sourcing, and corporate responsibility when making purchasing decisions. Companies are under increasing pressure to align their practices with these values, not only to meet consumer expectations but also to attract and retain top talent who share these beliefs.
+
+# In response to these dynamics, organizations must foster a culture of innovation, agility, and continuous learning. Embracing emerging technologies such as artificial intelligence, machine learning, and data analytics can provide businesses with valuable insights and a competitive edge. However, leaders must also address concerns related to data privacy, cybersecurity, and the ethical implications of using advanced technologies.
+
+# As the global economic landscape continues to evolve, adaptability and forward-thinking leadership will be essential for long-term success. Organizations that can navigate these complexities while remaining true to their core values will be better positioned to thrive in an increasingly dynamic and unpredictable world.
+#     """
+#     #grammar_corrector(input_text)
+#     #paraphraser(input_text)
+#     paraphraser(input_text, style="business")
+
+
+

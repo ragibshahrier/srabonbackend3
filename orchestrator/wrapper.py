@@ -141,6 +141,12 @@ def get_course_progress(user_id, courseID):
         "courseID": courseID
     })
 
+def get_all_course_progress(user_id):
+    return requests.post(f"{BASE_URL}/get", json={
+        "mode": "coursegetprogressall",
+        "user_id": str(user_id),
+    })
+
 def mark_question_solved(user_id, question_id):
     return requests.post(f"{BASE_URL}/process", json={
         "mode": "quesprocess",

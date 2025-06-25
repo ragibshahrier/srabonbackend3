@@ -21,4 +21,10 @@ urlpatterns = [
     path('personal-course-stats/<str:course_id>/', PersonalCourseStatsView.as_view()),
 
     path('notifications/<str:arg>/', NotificationView.as_view()),
+
+    path('add-from-explorer/', AddFromExplorerView.as_view()),
+    path('explorer-courses/', ExplorerCoursesView.as_view()),
+    path('course-access/<str:access>/', CourseAccessView.as_view()),
+
+    path('grammarhelper/', GrammarHelperView.as_view()),
 ]

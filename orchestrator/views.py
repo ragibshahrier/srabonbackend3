@@ -203,9 +203,36 @@ class StudentDetail(APIView):
         points = student_profile.points
         subjects = student_profile.favsubjects
         subjects = json.loads(subjects) if subjects else []
+        quiz_score = student_profile.quiz_score
+        quiz_attempts = student_profile.quiz_attempts
+        quiz_highest_score = student_profile.quiz_highest_score
+        quiz_average_score = quiz_score / quiz_attempts if quiz_attempts > 0 else 0
+        total_courses = 0
+        course_completed = 0
+        course_pending = 0
 
         if isinstance(subjects, list):
             subjects = list(set([s.capitalize() for s in subjects]))
+
+
+        response = get_all_course_progress(user_id=encode_user_info(user_id=userid, username=username, email=userid))
+        if response.status_code != 200:
+            return Response({"error": "Failed to retrieve course progress"}, status=response.status_code)
+        course_progress = response.json()
+        course_progress = course_progress.get('course_progress_list', [])
+        
+        for course in course_progress:
+            # "description_read": progress.get("description_read", 0),
+            # "flashcards_read": progress.get("flashcards_read", 0),
+            # "articles_read": progress.get("articles_read", 0),
+            # "quiz_score": progress.get("quiz_score", 0),
+            # "previous_answers": progress.get("previous_answers", ""),
+            total_courses += 1
+            if course.get("description_read", 0) > 0 and course.get("flashcards_read", 0) > 0 and course.get("articles_read", 0) > 0 and course.get("quiz_score", 0) > 0 and course.get("previous_answers", "") != "":
+                course_completed += 1
+
+        course_pending = total_courses - course_completed
+
 
         print(f"Authenticated student's username: {username}")
         print(f"Authenticated student's ID: {userid}")
@@ -219,7 +246,14 @@ class StudentDetail(APIView):
             "name": name,
             "class": level,
             "points": points,
-            "subjects": subjects
+            "subjects": subjects,
+            "quiz_score": quiz_score,
+            "quiz_attempts": quiz_attempts,
+            "quiz_highest_score": quiz_highest_score,
+            "quiz_average_score": quiz_average_score,
+            "total_courses": total_courses,
+            "course_completed": course_completed,
+            "course_pending": course_pending
         }
         return Response(resp, status=200)
     
@@ -755,6 +789,12 @@ class PersonalCourseStatsView(APIView):
         course_progress["quiz_score"] = data.get("quiz_score", course_progress.get("quiz_score", 0))
         course_progress["previous_answers"] = data.get("previous_answers", course_progress.get("previous_answers", ""))
 
+        if course_progress["previous_answers"] !="":
+            studentProfile.quiz_score += course_progress["quiz_score"]
+            studentProfile.quiz_attempts += 1
+            studentProfile.quiz_highest_score = max(studentProfile.quiz_highest_score, course_progress["quiz_score"])
+            studentProfile.save()
+
 
         if "previous_answers" in course_progress and isinstance(course_progress["previous_answers"], str):
             course_progress["previous_answers"] = course_progress["previous_answers"].replace(" ", "").upper()
@@ -882,4 +922,127 @@ class NotificationView(APIView):
         elif arg == "read":
             Notification.objects.filter(user=user, is_read=True).delete()
             return Response({"message": "All read notifications deleted"}, status=200)
+
+
+
+"""Adds a course from the explorer view"""
+class AddFromExplorerView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        username = request.user.username  # The logged-in user's username
+        user_id = request.user.id  # The logged-in user's ID (primary key)
+        user_email = request.user.id  # The logged-in user's ID (primary key)
+        backend_id = encode_user_info(user_id, username, user_email)
+
+        course_id = request.data.get('courseId')
+        if not course_id:
+            return Response({"error": "Course ID is required"}, status=400)
+
+        response = send_explorer_course(user_id=backend_id, courseID=course_id)
+        if response.status_code != 200:
+            return Response({"status": "Failed to add course"}, status=response.status_code)
+
+        else:
+            # responds with status succcess with status code 200
+            return Response(response.json(), status=200)
+        
+"""Makes a course public or private"""
+class CourseAccessView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, access):
+        username = request.user.username  # The logged-in user's username
+        user_id = request.user.id  # The logged-in user's ID (primary key)
+        user_email = request.user.id  # The logged-in user's ID (primary key)
+        backend_id = encode_user_info(user_id, username, user_email)
+
+        course_id = request.data.get('courseId')
+
+        if not course_id:
+            return Response({"error": "Course ID is required"}, status=400)
+
+        if(access == "public"):
+            # Call the function to make the course public
+            response = set_course_public(user_id=backend_id, course_id=course_id)
+        elif(access == "private"):
+            # Call the function to make the course private
+            response = set_course_private(user_id=backend_id, course_id=course_id)
+        
+        else:
+            return Response({"error": "Invalid access type"}, status=400)
+        
+
+        
+
+        if response.status_code != 200:
+            return Response({"status": "Failed to make course public"}, status=response.status_code)
+
+        else:
+            # responds with status succcess with status code 200
+            return Response(response.json(), status=200)
+        
+
+class ExplorerCoursesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        username = request.user.username  # The logged-in user's username
+        user_id = request.user.id  # The logged-in user's ID (primary key)
+        user_email = request.user.id  # The logged-in user's ID (primary key)
+        backend_id = encode_user_info(user_id, username, user_email)
+
+        response = get_explorer_courses(user_id=backend_id)
+
+        if response.status_code == 200:
+            courses_data = response.json()
+
+            courses_data = courses_data['courses']
+            for i in range(len(courses_data)):
+                try:
+                    courses_data[i]['parent'] = json.loads(courses_data[i]['parent'])
+                except json.JSONDecodeError:
+                    courses_data[i]['parent'] = {"error": "Invalid JSON format in course data"}
+
+            return Response(courses_data, status=200)
+        else:
+            return Response({"error": "Failed to retrieve explorer courses"}, status=response.status_code)
+        
+
+
+class GrammarHelperView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        username = request.user.username  # The logged-in user's username
+        user_id = request.user.id  # The logged-in user's ID (primary key)
+        user_email = request.user.id  # The logged-in user's ID (primary key)
+        backend_id = encode_user_info(user_id, username, user_email)
+
+        text = request.data.get('text')
+        if not text:
+            return Response({"error": "Text is required"}, status=400)
+        
+        task = request.data.get('task')
+        if task not in ['grammar_check', 'paraphrase', 'summarize']:
+            return Response({"error": "Invalid task. Must be 'grammar_check' or 'spell_check'"}, status=400)
+
+        response = None
+        if task == 'grammar_check':
+            # Call the grammar_check function from wrapper.py
+            response = grammar_corrector(text)
+        elif task == 'paraphrase':
+            # Call the para_phrase function from wrapper.py
+            response = paraphraser(text)
+        elif task == 'summarize':
+            # Call the summarizer function from wrapper.py
+            response = summarizer(text)
+
+        if(response is None):
+            return Response({"error": "something went wrong"}, status=400)
+        # response = grammar_check(text)
+        if response.status_code == 200:
+            return Response(response, status=200)
+        else:
+            return Response({"error": "Failed to check grammar"}, status=200)
         

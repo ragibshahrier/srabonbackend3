@@ -19,6 +19,10 @@ class StudentProfile(models.Model):
     coursenumber = models.IntegerField(default=100)
     favsubjects = models.CharField(max_length=500, default='')
 
+    quiz_score = models.IntegerField(default=0)
+    quiz_attempts = models.IntegerField(default=0)
+    quiz_highest_score = models.IntegerField(default=0)
+
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
