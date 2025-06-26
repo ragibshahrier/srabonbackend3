@@ -568,7 +568,7 @@ def createPdf_with_HTTP_response_bangla(data):
     return buffer
 
 
-def summarizer(main_text, number_of_words, summary_type, tone, audience, format_type):
+def summarizer(main_text, number_of_words=130, summary_type="standard", tone="semiformal", audience = "student", format_type = "paragraph"):
     
     prompt = (
         "You are a highly skilled summarizer. Your task is to generate a summary following these instructions:\n\n"
@@ -587,7 +587,7 @@ def summarizer(main_text, number_of_words, summary_type, tone, audience, format_
     response = {
         "summary": response.text.strip()
     }
-    print(response.text)
+    # print(response.text)
 
     return response
 

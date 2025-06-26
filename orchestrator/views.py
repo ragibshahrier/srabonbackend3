@@ -1030,19 +1030,22 @@ class GrammarHelperView(APIView):
         response = None
         if task == 'grammar_check':
             # Call the grammar_check function from wrapper.py
-            response = grammar_corrector(text)
+            response = grammar_corrector(text=text)
         elif task == 'paraphrase':
+            style = request.data.get('style', 'semiformal')
             # Call the para_phrase function from wrapper.py
-            response = paraphraser(text)
+            response = paraphraser(text, style=style)
         elif task == 'summarize':
+            number_of_words = request.data.get('number_of_words', 130)
+            style = request.data.get('style', 'semiformal')
             # Call the summarizer function from wrapper.py
-            response = summarizer(text)
+            response = summarizer(main_text=text, number_of_words=number_of_words, tone=style)
 
         if(response is None):
             return Response({"error": "something went wrong"}, status=400)
         # response = grammar_check(text)
-        if response.status_code == 200:
-            return Response(response, status=200)
+        
         else:
-            return Response({"error": "Failed to check grammar"}, status=200)
+            
+            return Response(response, status=200)
         
